@@ -1,0 +1,14 @@
+
+
+services:
+
+  db:
+    container_name: db
+    build: docker/images/pg
+    volumes:
+      - pg-data:/var/lib/postgresql/shared-data/
+    ports:
+      - "${EXP_PORT_PG}:5432"
+
+volumes:
+  pg-data:

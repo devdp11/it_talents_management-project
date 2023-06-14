@@ -1,0 +1,1 @@
+﻿insert into Users (Username, Password, Role) values ('root','root','admin');
