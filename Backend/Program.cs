@@ -1,4 +1,4 @@
-using BusinessLogic.Context;
+using BusinessLogic.databaseContext;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,7 +11,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Add default connection string for the Web API controllers
-builder.Services.AddDbContext<ES2DbContext>(options => 
+builder.Services.AddDbContext<databaseContext>(options => 
     options.UseNpgsql(builder.Configuration.GetConnectionString("DatabaseConnection"))
 );
 
