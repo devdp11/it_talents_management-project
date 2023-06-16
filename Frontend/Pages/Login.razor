@@ -1,5 +1,65 @@
 ﻿@page "/login"
 
-<PageTitle>Login</PageTitle>
+<style>
+    .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
 
-<h1>Login Page</h1>
+    .login-form {
+        text-align: center;
+        margin: auto;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        background-color: #ffffff;
+    }
+
+    .form-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+
+    .form-row label {
+        margin-right: 10px;
+    }
+
+    .form-row input[type="text"],
+    .form-row input[type="password"] {
+        width: 300px; /* Ajuste o tamanho desejado */
+        padding: 5px;
+        font-size: 16px;
+    }
+
+    .form-row button {
+        margin-top: 10px;
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+</style>
+
+<div class="container">
+    <div class="login-form">
+        <h1>Login Page</h1>
+        <div class="form-row">
+            <label for="username">Username:</label>
+            <input type="text" id="username" />
+        </div>
+        <div class="form-row">
+            <label for="password">Password:</label>
+            <input type="password" id="password" />
+        </div>
+        <div class="form-row">
+            <button type="button">Login</button>
+        </div>
+    </div>
+</div>

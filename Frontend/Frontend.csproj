@@ -11,4 +11,17 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.7" PrivateAssets="all" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="Pages\Users.css">
+        <DependentUpon>Users.razor</DependentUpon>
+      </None>
+      <None Update="Pages\Login.css">
+        <DependentUpon>Login.razor</DependentUpon>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Assets\" />
+    </ItemGroup>
+
 </Project>
