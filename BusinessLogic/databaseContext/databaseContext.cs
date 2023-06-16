@@ -28,6 +28,8 @@ public partial class databaseContext : DbContext
 
     public virtual DbSet<ProfessionalSkill> ProfessionalSkills { get; set; }
 
+    public virtual DbSet<Role> Roles { get; set; }
+
     public virtual DbSet<Skill> Skills { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
@@ -178,6 +180,18 @@ public partial class databaseContext : DbContext
                 .HasConstraintName("professional_skills_skillid_fkey");
         });
 
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.HasKey(e => e.Roleid).HasName("roles_pkey");
+
+            entity.ToTable("roles");
+
+            entity.Property(e => e.Roleid).HasColumnName("roleid");
+            entity.Property(e => e.Name)
+                .HasMaxLength(255)
+                .HasColumnName("name");
+        });
+
         modelBuilder.Entity<Skill>(entity =>
         {
             entity.HasKey(e => e.Skillid).HasName("skills_pkey");
@@ -203,12 +217,14 @@ public partial class databaseContext : DbContext
             entity.Property(e => e.Password)
                 .HasMaxLength(100)
                 .HasColumnName("password");
-            entity.Property(e => e.Role)
-                .HasMaxLength(50)
-                .HasColumnName("role");
+            entity.Property(e => e.Roleid).HasColumnName("roleid");
             entity.Property(e => e.Username)
                 .HasMaxLength(100)
                 .HasColumnName("username");
+
+            entity.HasOne(d => d.Role).WithMany(p => p.Users)
+                .HasForeignKey(d => d.Roleid)
+                .HasConstraintName("users_roleid_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);
