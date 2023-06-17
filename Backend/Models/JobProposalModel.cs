@@ -11,7 +11,7 @@ public class JobProposalModel
     public string TalentCategory { get; set; }
     public int TotalHours { get; set; }
     public string JobDescription { get; set; }
-    public User User { get; set; }
-    public Client Client { get; set; }
-    public List<JobproposalSkill> JobproposalSkill { get; set; }
+    public UserModel User { get; set; }
+    public ClientModel Client { get; set; }
+    public List<JobProposalSkillModel> JobproposalSkill { get; set; }
 }

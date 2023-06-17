@@ -29,7 +29,6 @@
 
     <ItemGroup>
       <Folder Include="Entities\" />
-      <Folder Include="ViewModels\" />
     </ItemGroup>
 
 </Project>

@@ -8,6 +8,6 @@ public class JobProposalSkillModel
     public int JobProposalID { get; set; }
     public int SkillID { get; set; }
     public int MinYearsExperience { get; set; }
-    public Skill Skill { get; set; }
-    public Jobproposal Jobproposal { get; set; }
+    public SkillModel Skill { get; set; }
+    public JobProposalModel Jobproposal { get; set; }
 }
