@@ -1,6 +1,6 @@
-﻿using Backend.Models;
-using BusinessLogic.Entities;
+﻿using BusinessLogic.Entities;
 using BusinessLogic.databaseContext;
+using BusinessLogic.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers

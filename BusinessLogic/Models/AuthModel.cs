@@ -1,4 +1,4 @@
-﻿namespace Backend.Models;
+﻿namespace BusinessLogic.Models;
 
 public class AuthModel
 {

@@ -1,6 +1,6 @@
 ﻿using BusinessLogic.Entities;
 
-namespace Backend.Models;
+namespace BusinessLogic.Models;
 
 public class ProfessionalSkillModel
 {

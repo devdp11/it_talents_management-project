@@ -1,4 +1,4 @@
-﻿using Backend.Models;
+﻿using BusinessLogic.Models;
 using BusinessLogic.databaseContext;
 using BusinessLogic.Entities;
 using Microsoft.AspNetCore.Mvc;

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Backend.Models;
+using BusinessLogic.Models;
 using BusinessLogic.Entities;
 using BusinessLogic.databaseContext;
 using Microsoft.AspNetCore.Mvc;
