@@ -26,24 +26,20 @@ namespace Backend.Controllers
         public async Task<IActionResult> HandleLogin(string username, string password)
         {
             // Check if the username and password match the records in the database
-            var users =
+            var user =
                 await _context.Users.FirstOrDefaultAsync(u => u.Username == username && u.Password == password);
 
-            if (users != null)
+            if (user != null)
             {
                 // Authentication successful
-                return Ok("Logged in Sucessfully!");
-            }
-
-            if (password.Length < 6)
-            {
-                return Unauthorized("Password must be over 6 digits!");
+                return Ok("Login successful!");
             }
             else
             {
                 // Authentication failed
-                return Unauthorized("Wrong Username or Password!");
+                return Unauthorized("Username or Password incorrect!");
             }
         }
+        
     }
 }
