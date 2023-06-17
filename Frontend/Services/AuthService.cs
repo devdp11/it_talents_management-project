@@ -1,22 +1,30 @@
-﻿namespace Frontend.Services;
-
-public class AuthService
+﻿namespace Frontend.Services
 {
-    private bool _isAuthenticated = false;
-    private string _role = "";
-
-    public bool IsAuthenticated => _isAuthenticated;
-    public string Role => _role;
-
-    public void Login(string role)
+    public class AuthService
     {
-        _isAuthenticated = true;
-        _role = role;
-    }
+        private bool _isAuthenticated = false;
+        private string _role = "";
 
-    public void Logout()
-    {
-        _isAuthenticated = false;
-        _role = "";
+        public bool IsAuthenticated => _isAuthenticated;
+        public string Role => _role;
+
+        // Adicionar esta linha
+        public event Action OnChange;
+
+        public void Login(string role)
+        {
+            _isAuthenticated = true;
+            _role = role;
+            NotifyStateChanged();
+        }
+
+        public void Logout()
+        {
+            _isAuthenticated = false;
+            _role = "";
+            NotifyStateChanged();
+        }
+
+        private void NotifyStateChanged() => OnChange?.Invoke();
     }
 }
