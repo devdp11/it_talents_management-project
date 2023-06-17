@@ -1,48 +1,49 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Backend.Models;
-using BusinessLogic.databaseContext;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
+using BusinessLogic.databaseContext;
+using BusinessLogic.Entities;
 
-namespace Backend.Controllers;
-
-[Route("api/[controller]")]
-[ApiController]
-
-public class AuthController : ControllerBase {
-    private readonly IConfiguration _configuration;
-    public AuthController(IConfiguration configuration) { _configuration = configuration; }
-    
-    [HttpPost("token")]
-    
-    public IActionResult GenerateToken([FromBody] AuthModel login) { if (IsValidUser(login))
-        { var token = GenerateJwtToken(login.Username); return Ok(new { Token = token });
-        }
-        return Unauthorized();
-    }
-    
-    private bool IsValidUser(AuthModel login)
+namespace Backend.Controllers
+{
+    [Route("api/Users")]
+    [ApiController]
+    public class AuthController : ControllerBase
     {
-        using (var dbContext = new databaseContext())
+        private readonly databaseContext _context;
+
+        public AuthController(databaseContext context)
         {
-            var user = dbContext.Users.FirstOrDefault(u => u.Username == login.Username);
-            if (user != null)
+            _context = context;
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> HandleLogin(string username, string password)
+        {
+            // Check if the username and password match the records in the database
+            var users =
+                await _context.Users.FirstOrDefaultAsync(u => u.Username == username && u.Password == password);
+
+            if (users != null)
             {
-                if (user.Password == login.Password)
-                {
-                    return true; // ao retornar true, o username e password foram validados
-                }
+                // Authentication successful
+                return Ok("Logged in Sucessfully!");
+            }
+
+            if (password.Length < 6)
+            {
+                return Unauthorized("Password must be over 6 digits!");
+            }
+            else
+            {
+                // Authentication failed
+                return Unauthorized("Wrong Username or Password!");
             }
         }
-        return false; // ao retornar true, o username e password não foram validados
-    }
-    private string GenerateJwtToken(string username) { var claims = new[] { new Claim(ClaimTypes.Name, username) };
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"])); var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256); var expires = DateTime.Now.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:TokenExpirationTimeInMinutes"]));
-        var token = new JwtSecurityToken( _configuration["JwtSettings:Issuer"], _configuration["JwtSettings:Audience"],
-            claims, expires: expires, signingCredentials: credentials
-        );
-        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
