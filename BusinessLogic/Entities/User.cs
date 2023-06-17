@@ -19,5 +19,8 @@ public partial class User
 
     public virtual ICollection<Professional> Professionals { get; set; } = new List<Professional>();
 
-    public virtual Role? Role { get; set; }
+    //public virtual Role? Role { get; set; }
+    
+    public Role Role { get; set; }
+
 }

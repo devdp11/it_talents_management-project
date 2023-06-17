@@ -8,5 +8,5 @@ public class UserModel
     public string Username { get; set; }
     public string Password { get; set; }
     public int RoleID { get; set; }
-    public RoleModel Role { get; set; }
+    public string RoleName { get; set; } // Adicionado esta propriedade
 }
