@@ -125,6 +125,7 @@
     
     private async Task createUser()
     {
+
         var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/Users", user);
 
         if (response.IsSuccessStatusCode)
@@ -143,6 +144,7 @@
     private void ShowCreateForm()
     {
         user = new UserModel();
+        user.RoleName = "manager";
         showCreateForm = true;
         showEditForm = false;
         showDeleteConfirmation = false;
