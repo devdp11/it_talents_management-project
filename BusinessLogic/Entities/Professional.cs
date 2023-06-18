@@ -17,7 +17,7 @@ public partial class Professional
 
     public decimal Hourlyrate { get; set; }
 
-    public string Visibility { get; set; } = null!;
+    public bool? Visibility { get; set; } = null!;
 
     public virtual ICollection<Experience> Experiences { get; set; } = new List<Experience>();
 

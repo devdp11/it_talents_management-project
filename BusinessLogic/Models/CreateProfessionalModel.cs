@@ -9,5 +9,5 @@ public class CreateProfessionalModel
     public string Country { get; set; }
     public string Email { get; set; }
     public decimal HourlyRate { get; set; }
-    public string Visibility { get; set; }
+    public bool Visibility { get; set; }
 }
