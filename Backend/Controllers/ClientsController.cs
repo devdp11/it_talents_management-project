@@ -3,6 +3,7 @@ using System.Linq;
 using BusinessLogic.Entities;
 using BusinessLogic.databaseContext;
 using Microsoft.AspNetCore.Mvc;
+using BusinessLogic.Models;
 
 namespace Backend.Controllers
 {
@@ -25,10 +26,17 @@ namespace Backend.Controllers
         }
 
         [HttpPost]
-        public ActionResult<Client> CreateClient(Client client)
+        public ActionResult<Client> CreateClient(ClientModel clientModel)
         {
+            var client = new Client
+            {
+                Name = clientModel.Name,
+                Userid = clientModel.UserID
+            };
+
             _dbContext.Clients.Add(client);
             _dbContext.SaveChanges();
+
             return CreatedAtAction(nameof(GetClientById), new { id = client.Clientid }, client);
         }
 
