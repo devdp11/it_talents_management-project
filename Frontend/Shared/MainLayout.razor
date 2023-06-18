@@ -42,6 +42,6 @@
         await LocalStorage.RemoveItemAsync("isAuthenticated");
         await LocalStorage.RemoveItemAsync("role");
         _isAuthenticated = false;
-        NavigationManager.NavigateTo("/login");
+        NavigationManager.NavigateTo("/login", true);
     }
 }

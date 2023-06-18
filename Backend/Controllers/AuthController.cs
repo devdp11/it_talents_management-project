@@ -31,7 +31,9 @@ namespace Backend.Controllers
                 .Where(u => u.Username == username && u.Password == password)
                 .Select(u => new UserModel
                 {
+                    UserID = u.Userid,
                     Username = u.Username,
+                    RoleID = u.Role.Roleid,
                     RoleName = u.Role.Name
                 })
                 .FirstOrDefaultAsync();

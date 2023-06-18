@@ -114,7 +114,7 @@
                 await localstorage.SetItemAsync("isAuthenticated", true);
                 await localstorage.SetItemAsync("role", result.RoleName);
                 Console.WriteLine("Success");
-                navigationManager.NavigateTo("/");
+                navigationManager.NavigateTo("/", true);
             }
             else
             {
