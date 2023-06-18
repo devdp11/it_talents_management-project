@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BusinessLogic.databaseContext;
 using BusinessLogic.Entities;
+using BusinessLogic.Models;
 
 namespace Backend.Controllers
 {
@@ -23,16 +24,22 @@ namespace Backend.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> HandleLogin(string username, string password)
+        public async Task<ActionResult<UserModel>> HandleLogin(string username, string password)
         {
             // Check if the username and password match the records in the database
-            var user =
-                await _context.Users.FirstOrDefaultAsync(u => u.Username == username && u.Password == password);
+            var user = await _context.Users
+                .Where(u => u.Username == username && u.Password == password)
+                .Select(u => new UserModel
+                {
+                    Username = u.Username,
+                    RoleName = u.Role.Name
+                })
+                .FirstOrDefaultAsync();
 
             if (user != null)
             {
                 // Authentication successful
-                return Ok("Login successful!");
+                return user;
             }
             else
             {

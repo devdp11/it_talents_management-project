@@ -1,4 +1,9 @@
 ﻿@page "/Login"
+@using Blazored.LocalStorage
+@using BusinessLogic.Models
+@using Frontend.Models
+
+@inject ILocalStorageService localstorage
 
 <h3>Login</h3>
 
@@ -103,10 +108,11 @@
 
             if (response.IsSuccessStatusCode)
             {
-        // Authentication successful
-                var result = await response.Content.ReadAsStringAsync();
-        // Handle the successful login response
-        // Redirect to the main menu or perform other actions
+                // Authentication successful
+                var result = await response.Content.ReadFromJsonAsync<UserModel>();
+                if(result == null){return;}
+                await localstorage.SetItemAsync("isAuthenticated", true);
+                await localstorage.SetItemAsync("role", result.RoleName);
                 Console.WriteLine("Success");
                 navigationManager.NavigateTo("/");
             }

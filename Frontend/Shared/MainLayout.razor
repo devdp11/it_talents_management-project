@@ -1,7 +1,9 @@
 ﻿@inherits LayoutComponentBase
 @using Frontend.Services
+@using Blazored.LocalStorage
 @inject AuthService authService
 @implements IDisposable
+@inject ILocalStorageService LocalStorage
 
 <div class="page">
     <div class="sidebar">
@@ -10,7 +12,7 @@
 
     <main>
         <div class="top-row px-4">
-            @if(authService.IsAuthenticated)
+            @if(_isAuthenticated)
             {
                 <a href="/Login">Logout</a>
             }
@@ -22,8 +24,10 @@
 </div>
 
 @code {
-    protected override void OnInitialized()
+    private bool _isAuthenticated = false;
+    protected override async Task OnInitializedAsync()
     {
+        _isAuthenticated = await LocalStorage.GetItemAsync<bool>("isAuthenticated");
         authService.OnChange += StateHasChanged;
     }
 

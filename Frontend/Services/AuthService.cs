@@ -1,4 +1,7 @@
-﻿namespace Frontend.Services
+﻿using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components;
+
+namespace Frontend.Services
 {
     public class AuthService
     {
