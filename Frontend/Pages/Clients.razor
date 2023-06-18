@@ -1,0 +1,235 @@
+@using Frontend.Models
+@inject HttpClient httpClient
+@using Microsoft.AspNetCore.Components
+@using BusinessLogic.Models
+@page "/clients"
+
+<PageTitle>Clients</PageTitle>
+
+<style>
+    .button {
+        margin-top: 20px;
+    }
+    label {
+        margin-top: 10px;
+        color: royalblue;
+    }
+    InputText{
+        border-color: royalblue;    
+    }
+</style>
+
+<div class="text-center">
+    <button class="btn btn-primary custom-btn" @onclick="ShowCreateForm">Add Clients</button>
+    <button class="btn btn-primary custom-btn" @onclick="ListAllClients">List Clients</button>
+</div>
+
+@if (showCreateForm)
+{
+    <h4>Add Clients</h4>
+
+    
+}
+
+@if (showClientList)
+{
+    <h4>List Clients</h4>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Username</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var client in clients)
+        {
+            <tr>
+                <td>@client.ClientID</td>
+                <td>@client.Name</td>
+                <td>@client.User.Username</td>
+
+                <td>
+                    <button class="btn btn-primary" @onclick="() => ShowEditForm(client)">Edit</button>
+                    <button class="btn btn-danger" @onclick="() => ShowDeleteConfirmation(client.ClientID)">Delete</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@if (showEditForm)
+{
+    <h4>Edit Client Profile</h4>
+
+    <EditForm Model="@client" OnValidSubmit="EditClient">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <InputText type="name" class="form-control" id="name" @bind-Value="@client.Name" />
+            <ValidationMessage For="@(() => client.Name)" />
+        </div>
+
+        <div class="form-group">
+            <label for="username">Username</label>
+            <InputText type="username" class="form-control" id="username" @bind-Value="@client.User.Username"/>
+            <ValidationMessage For="@(() => client.User.Username)"/>
+        </div>
+
+        <div class="button">
+            <button class="btn btn-primary" type="submit">Update</button>
+            <button class="btn btn-danger" @onclick="CancelEdit">Cancel</button>
+        </div>
+
+        <div>
+            @if (!string.IsNullOrEmpty(editMessage))
+            {
+                <div class="alert alert-info">@editMessage</div>
+            }
+        </div>
+    </EditForm>
+}
+
+@if (showDeleteConfirmation)
+{
+    <h4>Delete Skill</h4>
+    <p>Are you sure you want to delete this skill?</p>
+    <button class="btn btn-danger" @onclick="DeleteSkill">Yes, delete it</button>
+    <button class="btn btn-secondary" @onclick="ShowList">No, go back</button>
+}
+
+@code {
+    private string editMessage;
+    private string Message = "";
+    private List<ClientModel> clients;
+    private ClientModel client = new ClientModel();
+    private int editClientId;
+    private int deleteClientId;
+    private string createMessage;
+    bool showCreateForm = false;
+    bool showEditForm = false;
+    bool showDeleteConfirmation = false;
+    private bool showClientList = false;
+    
+    private async Task ListClients()
+    {
+        clients = await httpClient.GetFromJsonAsync<List<ClientModel>>("http://localhost:5052/api/Clients");
+    }
+    
+    private async Task ListAllClients()
+    {
+        var response = await httpClient.GetAsync("http://localhost:5052/api/Clients");
+
+        if (response.IsSuccessStatusCode)
+        {
+            clients = await response.Content.ReadFromJsonAsync<List<ClientModel>>();
+            showClientList = true;
+            showCreateForm = false;
+            showEditForm = false;
+            showDeleteConfirmation = false;
+        }
+        else
+        {
+            clients = new List<ClientModel>();
+            showClientList = false;
+            showCreateForm = false; 
+            showEditForm = false;
+            showDeleteConfirmation = false;
+        }
+    }
+    
+    private async Task createClient()
+    {
+
+        var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/Clients", client);
+
+        if (response.IsSuccessStatusCode)
+        {
+            createMessage = "Client profile created with success";
+            client = new ClientModel();
+            showCreateForm = false;
+            await ListClients();
+        }
+        else
+        {
+            createMessage = "Error creating client profile";
+        }
+    }
+
+    private void ShowCreateForm()
+    {
+        client = new ClientModel();
+        showCreateForm = true;
+        showEditForm = false;
+        showDeleteConfirmation = false;
+        showClientList = false;
+    }
+    
+    private async Task EditClient()
+    {
+        var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Clients/{client.ClientID}", client);
+
+        if (response.IsSuccessStatusCode)
+        {
+            editMessage = "Client profile updated successfully";
+            client = new ClientModel();
+            showEditForm = false;
+            await ListClients();
+        }
+        else
+        {
+            editMessage = "Error updating client";
+        }
+    }
+
+    private void ShowEditForm(ClientModel clientToEdit)
+    {
+        client = clientToEdit;
+        editClientId = clientToEdit.ClientID;
+        showCreateForm = false;
+        showEditForm = true;
+        showDeleteConfirmation = false;
+        showClientList = false;
+    }
+
+    private async Task DeleteSkill()
+    {
+        var response = await httpClient.DeleteAsync($"http://localhost:5052/api/Clients/{deleteClientId}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            Message = "Client profile deleted successfully";
+            await ListAllClients();
+            ShowList();
+        }
+        else
+        {
+            Message = "Error deleting client profile";
+        }
+    }
+
+    private void ShowDeleteConfirmation(int idToDelete)
+    {
+        deleteClientId = idToDelete;
+        showDeleteConfirmation = true;
+        showCreateForm = false;
+        showEditForm = false;
+        showClientList = false;
+    }
+
+    private void ShowList()
+    {
+        showDeleteConfirmation = false;
+        showCreateForm = false;
+        showEditForm = false;
+        showClientList = true;
+    }
+    
+    private void CancelEdit()
+    {
+        showEditForm = false;
+        client = new ClientModel();
+    }
+}

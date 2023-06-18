@@ -4,6 +4,7 @@ using BusinessLogic.Models;
 using BusinessLogic.Entities;
 using BusinessLogic.databaseContext;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Controllers
 {
@@ -21,12 +22,17 @@ namespace Backend.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<Professional>> GetProfessionals()
         {
-            var professionals = _dbContext.Professionals.ToList();
+            var professionals = _dbContext.Professionals
+                .Include(p => p.ProfessionalSkills)
+                .ThenInclude(ps => ps.Skill)
+                .Include(p => p.Experiences)
+                .ToList();
+
             return Ok(professionals);
         }
 
         [HttpPost]
-        public ActionResult<ProfessionalModel> CreateProfessional(ProfessionalModel professionalModel)
+        public ActionResult<CreateProfessionalModel> CreateProfessional(CreateProfessionalModel professionalModel)
         {
             // Verifica se o usuário existe
             var user = _dbContext.Users.FirstOrDefault(u => u.Userid == professionalModel.UserID);
@@ -50,33 +56,8 @@ namespace Backend.Controllers
             _dbContext.Professionals.Add(professional);
             _dbContext.SaveChanges();
 
-            // Cria as entidades ProfessionalSkill
-            foreach (var professionalSkillModel in professionalModel.ProfessionalSkills)
-            {
-                var skill = _dbContext.Skills.FirstOrDefault(s => s.Skillid == professionalSkillModel.SkillID);
-                if (skill == null)
-                {
-                    return BadRequest($"Skill with id {professionalSkillModel.SkillID} does not exist");
-                }
-
-                var professionalSkill = new ProfessionalSkill 
-                {
-                    Professionalid = professional.Professionalid,
-                    Skillid = professionalSkillModel.SkillID,
-                    Yearsexperience = professionalSkillModel.YearsExperience,
-                    Professional = professional,
-                    Skill = skill
-                };
-
-                _dbContext.ProfessionalSkills.Add(professionalSkill);
-            }
-
-            _dbContext.SaveChanges();
-
-            // Copia o ID do Professional gerado para o modelo
-            professionalModel.ProfessionalID = professional.Professionalid;
-    
-            return CreatedAtAction(nameof(GetProfessionalById), new { id = professionalModel.ProfessionalID }, professionalModel);
+            // Retorna uma resposta com o ID do novo profissional
+            return CreatedAtAction(nameof(GetProfessionalById), new { id = professional.Professionalid }, professional);
         }
 
         [HttpGet("{id}")]
@@ -120,24 +101,58 @@ namespace Backend.Controllers
             return NoContent();
         }
 
-        [HttpPost("{id}/skills")]
-        public IActionResult AddSkillToProfessional(int id, ProfessionalSkill professionalSkill)
+        [HttpPost("addskill")]
+        public IActionResult AddSkillToProfessional(AddProfessionalSkillModel model)
         {
-            var professional = _dbContext.Professionals.FirstOrDefault(p => p.Professionalid == id);
+            var professional = _dbContext.Professionals.FirstOrDefault(p => p.Professionalid == model.ProfessionalID);
             if (professional == null)
             {
                 return NotFound();
             }
 
-            // Verify if the skill already exists for the professional
-            var existingSkill = professional.ProfessionalSkills.FirstOrDefault(ps => ps.Skillid == professionalSkill.Skillid);
-            if (existingSkill != null)
+            var skill = _dbContext.Skills.FirstOrDefault(s => s.Skillid == model.SkillID);
+            if (skill == null)
             {
-                return BadRequest("Skill already exists for the professional.");
+                return BadRequest($"Skill with id {model.SkillID} does not exist");
             }
 
-            professional.ProfessionalSkills.Add(professionalSkill);
+            var professionalSkill = new ProfessionalSkill 
+            {
+                Professionalid = professional.Professionalid,
+                Skillid = model.SkillID,
+                Yearsexperience = model.YearsExperience,
+                Professional = professional,
+                Skill = skill
+            };
+
+            _dbContext.ProfessionalSkills.Add(professionalSkill);
             _dbContext.SaveChanges();
+    
+            return Ok();
+        }
+        
+        [HttpPost("addexperience")]
+        public IActionResult AddExperienceToProfessional(AddExperienceModel model)
+        {
+            var professional = _dbContext.Professionals.FirstOrDefault(p => p.Professionalid == model.ProfessionalID);
+            if (professional == null)
+            {
+                return NotFound();
+            }
+
+            var experience = new Experience
+            {
+                Professionalid = model.ProfessionalID,
+                Title = model.Title,
+                Company = model.Company,
+                Startyear = model.StartYear,
+                Endyear = model.EndYear,
+                Professional = professional
+            };
+
+            _dbContext.Experiences.Add(experience);
+            _dbContext.SaveChanges();
+    
             return Ok();
         }
     }

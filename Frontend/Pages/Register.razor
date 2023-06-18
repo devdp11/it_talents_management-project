@@ -1,0 +1,131 @@
+@page "/register"
+@using Blazored.LocalStorage
+@using Frontend.Models
+
+@inject ILocalStorageService localstorage
+@inject HttpClient httpClient
+
+<h3>Register</h3>
+
+<div class="register-container">
+    <div class="form-group">
+        <label for="username">Username:</label>
+        <input id="username" class="form-control" @bind="Username" />
+    </div>
+
+    <div class="form-group">
+        <label for="password">Password:</label>
+        <input id="password" class="form-control" type="password" @bind="Password" />
+    </div>
+
+    <div class="form-group">
+        <button class="btn btn-primary" @onclick="HandleRegisterAsync">Register</button>
+    </div>
+
+    <div class="form-group">
+        <p>Already have an account? <a href="/login">Login here</a></p>
+    </div>
+</div>
+
+<style>
+    body {
+        background-color: #f0f5fa;
+    }
+
+    .register-container {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 30px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+
+    p {
+        font-size: 14px;
+        margin-bottom: 0;
+    }
+
+    a {
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+    h3 {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+</style>
+
+@code {
+    private string Username { get; set; }
+    private string Password { get; set; }
+
+    [Inject]
+    private NavigationManager navigationManager { get; set; }
+
+    private async Task HandleRegisterAsync()
+    {
+        var url = "http://localhost:5052/api/Users";
+
+        // Defina o valor da propriedade RoleName como "user"
+        var userModel = new UserModel
+        {
+            Username = Username,
+            Password = Password,
+            RoleName = "user" // Defina a função como "user"
+        };
+
+        var response = await httpClient.PostAsJsonAsync(url, userModel);
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Registro bem-sucedido
+            await localstorage.SetItemAsync("isAuthenticated", false);
+            //await localstorage.SetItemAsync("role", "user");
+            Console.WriteLine("Success");
+            navigationManager.NavigateTo("/login", true);
+        }
+        else
+        {
+            // Falha no registro
+            var error = await response.Content.ReadAsStringAsync();
+            Console.WriteLine("Error");
+            // Lide com a resposta de registro falhado
+            // Exiba uma mensagem de erro ou execute outras ações
+        }
+    }
+}

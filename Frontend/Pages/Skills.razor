@@ -2,6 +2,8 @@
 @using Frontend.Models
 @inject HttpClient httpClient
 @using Microsoft.AspNetCore.Components
+@using System.Text.Json
+@using System.Text
 
 <PageTitle>Skills</PageTitle>
 
@@ -27,7 +29,7 @@
 
 @if (showCreateForm)
 {
-    <h4>Add Users</h4>
+    <h4>Add Skills</h4>
 
     <EditForm Model="@skill" OnValidSubmit="createSkill">
         <div class="form-group">
@@ -88,7 +90,7 @@
 {
     <h4>Edit Skill</h4>
 
-    <EditForm Model="@skill" OnValidSubmit="EditSkill">
+    <EditForm Model="@skill" OnValidSubmit="UpdateSkill">
         <div class="form-group">
             <label for="name">Name</label>
             <InputText type="name" class="form-control" id="name" @bind-Value="@skill.Name" />
@@ -102,7 +104,7 @@
         </div>
 
         <div class="button">
-            <button class="btn btn-primary" type="submit">Update</button>
+            <button class="btn btn-primary" type="submit" @onclick="async () => await UpdateSkill()">Update</button>
             <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
         </div>
 
@@ -135,7 +137,11 @@
     bool showEditForm = false;
     bool showDeleteConfirmation = false;
     private bool showSkillList = false;
+    private int skillIdToDelete;
+    private SkillModel skillToEdit;
+    bool editFormVisible = false;
     
+
     private async Task ListSkills()
     {
         skills = await httpClient.GetFromJsonAsync<List<SkillModel>>("http://localhost:5052/api/Skills");
@@ -147,7 +153,18 @@
 
         if (response.IsSuccessStatusCode)
         {
-            skills = await response.Content.ReadFromJsonAsync<List<SkillModel>>();
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            var document = JsonDocument.Parse(jsonResponse);
+
+            skills = document.RootElement.GetProperty("$values").EnumerateArray()
+                .Select(element => new SkillModel 
+                { 
+                    SkillID = element.GetProperty("skillID").GetInt32(), 
+                    Name = element.GetProperty("name").GetString(), 
+                    ProfessionalArea = element.GetProperty("professionalArea").GetString(), 
+                })
+                .ToList();
+
             showSkillList = true;
             showCreateForm = false;
             showEditForm = false;
@@ -165,15 +182,15 @@
     
     private async Task createSkill()
     {
-
-        var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/Skills", skill);
+        var content = new StringContent(JsonSerializer.Serialize(skill), Encoding.UTF8, "application/json");
+        var response = await httpClient.PostAsync("http://localhost:5052/api/Skills", content);
 
         if (response.IsSuccessStatusCode)
         {
             createMessage = "Skill created with success";
             skill = new SkillModel();
             showCreateForm = false;
-            await ListSkills();
+            await ListAllSkills();
         }
         else
         {
@@ -189,24 +206,33 @@
         showDeleteConfirmation = false;
         showSkillList = false;
     }
-    
-    private async Task EditSkill()
+    private async Task UpdateSkill()
     {
-        var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Skills/{skill.SkillID}", skill);
+        if (skill != null)
+        {
+            var content = new StringContent(JsonSerializer.Serialize(skill), Encoding.UTF8, "application/json");
+            var response = await httpClient.PutAsync($"http://localhost:5052/api/Skills/{skill.SkillID}", content);
 
-        if (response.IsSuccessStatusCode)
-        {
-            editMessage = "Skill updated successfully";
-            skill = new SkillModel();
-            showEditForm = false;
-            await ListSkills();
-        }
-        else
-        {
-            editMessage = "Error updating skill";
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Skill updated successfully";
+                skill = null;
+                showEditForm = false;
+                await ListAllSkills();
+            }
+            else
+            {
+                Message = "Failed to update skill";
+            }
         }
     }
 
+    private void CancelEdit()
+    {
+        showEditForm = false;
+        skill = new SkillModel();
+        showSkillList = true;
+    }
     private void ShowEditForm(SkillModel skillToEdit)
     {
         skill = skillToEdit;
@@ -216,32 +242,31 @@
         showDeleteConfirmation = false;
         showSkillList = false;
     }
-
+    
     private async Task DeleteSkill()
     {
-        var response = await httpClient.DeleteAsync($"http://localhost:5052/api/Skills/{deleteSkillId}");
+        var response = await httpClient.DeleteAsync($"http://localhost:5052/api/Skills/{skillIdToDelete}");
 
         if (response.IsSuccessStatusCode)
         {
             Message = "Skill deleted successfully";
             await ListAllSkills();
-            ShowList();
         }
         else
         {
-            Message = "Error deleting skill";
+            Message = "Failed to delete skill";
         }
     }
-
-    private void ShowDeleteConfirmation(int idToDelete)
+    
+    private void ShowDeleteConfirmation(int skillId)
     {
-        deleteSkillId = idToDelete;
+        skillIdToDelete = skillId;
         showDeleteConfirmation = true;
         showCreateForm = false;
         showEditForm = false;
         showSkillList = false;
     }
-
+    
     private void ShowList()
     {
         showDeleteConfirmation = false;
@@ -250,9 +275,14 @@
         showSkillList = true;
     }
     
-    private void CancelEdit()
+    private async Task ConfirmDelete()
     {
-        showEditForm = false;
-        skill = new SkillModel();
+        showDeleteConfirmation = false;
+        await DeleteSkill();
+    }
+    
+    private void CancelDelete()
+    {
+        showDeleteConfirmation = false;
     }
 }

@@ -1,5 +1,245 @@
-﻿@page "/talents"
+﻿@using Frontend.Models
+@inject HttpClient httpClient
+@using Microsoft.AspNetCore.Components
+@using BusinessLogic.Models
+@page "/talents"
 
 <PageTitle>Talents</PageTitle>
 
-<h1>Talents Page</h1>
+<style>
+    .button {
+        margin-top: 20px;
+    }
+    label {
+        margin-top: 10px;
+        color: royalblue;
+    }
+    InputText{
+        border-color: royalblue;    
+    }
+</style>
+
+<div class="text-center">
+    <button class="btn btn-primary custom-btn" @onclick="ShowCreateForm">Add Talent Profile</button>
+    <button class="btn btn-primary custom-btn" @onclick="ListAllProfiles">List Talent Profiles</button>
+</div>
+
+@if (showCreateForm)
+{
+    <h4>Add Users</h4>
+
+    
+}
+
+@if (showSkillList)
+{
+    <h4>List Profiles</h4>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Country</th>
+            <th>Email</th>
+            <th>Hourly Rate</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var professional in professionals)
+        {
+            <tr>
+                <td>@professional.ProfessionalID</td>
+                <td>@professional.Name</td>
+                <td>@professional.Country</td>
+                <td>@professional.Email</td>
+                <td>@professional.HourlyRate</td>
+                
+                <td>
+                    <button class="btn btn-primary" @onclick="() => ShowEditForm(professional)">Edit</button>
+                    <button class="btn btn-danger" @onclick="() => ShowDeleteConfirmation(professional.ProfessionalID)">Delete</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@if (showEditForm)
+{
+    <h4>Edit Profile</h4>
+
+    <EditForm Model="@professional" OnValidSubmit="EditProfile">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <InputText type="name" class="form-control" id="name" @bind-Value="@professional.Name" />
+            <ValidationMessage For="@(() => professional.Name)" />
+        </div>
+        
+        <div class="form-group">
+            <label for="country">Country</label>
+            <InputText type="country" class="form-control" id="country" @bind-Value="@professional.Country"/>
+            <ValidationMessage For="@(() => professional.Country)"/>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email</label>
+            <InputText type="email" class="form-control" id="email" @bind-Value="@professional.Email"/>
+            <ValidationMessage For="@(() => professional.Email)"/>
+        </div>
+
+        <div class="button">
+            <button class="btn btn-primary" type="submit">Update</button>
+            <button class="btn btn-danger" @onclick="CancelEdit">Cancel</button>
+        </div>
+
+        <div>
+            @if (!string.IsNullOrEmpty(editMessage))
+            {
+                <div class="alert alert-info">@editMessage</div>
+            }
+        </div>
+    </EditForm>
+}
+
+@if (showDeleteConfirmation)
+{
+    <h4>Delete Skill</h4>
+    <p>Are you sure you want to delete this skill?</p>
+    <button class="btn btn-danger" @onclick="DeleteSkill">Yes, delete it</button>
+    <button class="btn btn-secondary" @onclick="ShowList">No, go back</button>
+}
+
+@code {
+    private string editMessage;
+    private string Message = "";
+    private List<ProfessionalModel> professionals;
+    private ProfessionalModel professional = new ProfessionalModel();
+    private int editProfessionalId;
+    private int deleteProfessionalId;
+    private string createMessage;
+    bool showCreateForm = false;
+    bool showEditForm = false;
+    bool showDeleteConfirmation = false;
+    private bool showSkillList = false;
+    
+    private async Task ListProfiles()
+    {
+        professionals = await httpClient.GetFromJsonAsync<List<ProfessionalModel>>("http://localhost:5052/api/Talents");
+    }
+    
+    private async Task ListAllProfiles()
+    {
+        var response = await httpClient.GetAsync("http://localhost:5052/api/Talents");
+
+        if (response.IsSuccessStatusCode)
+        {
+            professionals = await response.Content.ReadFromJsonAsync<List<ProfessionalModel>>();
+            showSkillList = true;
+            showCreateForm = false;
+            showEditForm = false;
+            showDeleteConfirmation = false;
+        }
+        else
+        {
+            professionals = new List<ProfessionalModel>();
+            showSkillList = false;
+            showCreateForm = false; 
+            showEditForm = false;
+            showDeleteConfirmation = false;
+        }
+    }
+    
+    private async Task createSkill()
+    {
+
+        var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/Talents", professional);
+
+        if (response.IsSuccessStatusCode)
+        {
+            createMessage = "Talent Profile created with success";
+            professional = new ProfessionalModel();
+            showCreateForm = false;
+            await ListProfiles();
+        }
+        else
+        {
+            createMessage = "Error creating talent profile";
+        }
+    }
+
+    private void ShowCreateForm()
+    {
+        professional = new ProfessionalModel();
+        showCreateForm = true;
+        showEditForm = false;
+        showDeleteConfirmation = false;
+        showSkillList = false;
+    }
+    
+    private async Task EditProfile()
+    {
+        var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Talents/{professional.ProfessionalID}", professional);
+
+        if (response.IsSuccessStatusCode)
+        {
+            editMessage = "Talent Profile updated successfully";
+            professional = new ProfessionalModel();
+            showEditForm = false;
+            await ListProfiles();
+        }
+        else
+        {
+            editMessage = "Error updating profile";
+        }
+    }
+
+    private void ShowEditForm(ProfessionalModel talentToEdit)
+    {
+        professional = talentToEdit;
+        editProfessionalId = talentToEdit.ProfessionalID;
+        showCreateForm = false;
+        showEditForm = true;
+        showDeleteConfirmation = false;
+        showSkillList = false;
+    }
+
+    private async Task DeleteSkill()
+    {
+        var response = await httpClient.DeleteAsync($"http://localhost:5052/api/Talents/{deleteProfessionalId}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            Message = "Talent profile deleted successfully";
+            await ListAllProfiles();
+            ShowList();
+        }
+        else
+        {
+            Message = "Error deleting profile";
+        }
+    }
+
+    private void ShowDeleteConfirmation(int idToDelete)
+    {
+        deleteProfessionalId = idToDelete;
+        showDeleteConfirmation = true;
+        showCreateForm = false;
+        showEditForm = false;
+        showSkillList = false;
+    }
+
+    private void ShowList()
+    {
+        showDeleteConfirmation = false;
+        showCreateForm = false;
+        showEditForm = false;
+        showSkillList = true;
+    }
+    
+    private void CancelEdit()
+    {
+        showEditForm = false;
+        professional = new ProfessionalModel();
+    }
+}

@@ -2,11 +2,11 @@
 @using BusinessLogic.Models
 @inject HttpClient httpClient
 @using Frontend.Models
+@using System.Text.Json
+@using System.Text
 @page "/users"
 
 <PageTitle>Users</PageTitle>
-
-<h1>Users</h1>
 
 <style>
     .button {
@@ -20,8 +20,6 @@
         border-color: royalblue;
     }
 </style>
-
-
 
 <div class="text-center">
     <button class="btn btn-primary custom-btn" @onclick="ShowCreateForm">Add Users</button>
@@ -115,7 +113,7 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-primary" @onclick="ConfirmDelete">Confirm</button>
-                            <button type="button" class="btn btn-secondary" @onclick="CancelDelete">Cancel</button>
+                            <button type="button" class="btn btn-danger" @onclick="CancelDelete">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -150,6 +148,7 @@
         
         <div class="button">
             <button class="btn btn-primary" type="submit">Update</button>
+            <button class="btn btn-danger" @onclick="CancelEdit">Cancel</button>
         </div>
 
         <div>
@@ -184,7 +183,20 @@
 
         if (response.IsSuccessStatusCode)
         {
-            users = await response.Content.ReadFromJsonAsync<List<UserModel>>();
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            var document = JsonDocument.Parse(jsonResponse);
+
+            users = document.RootElement.GetProperty("$values").EnumerateArray()
+                .Select(element => new UserModel 
+                { 
+                    UserID = element.GetProperty("userID").GetInt32(), 
+                    Username = element.GetProperty("username").GetString(), 
+                    Password = element.GetProperty("password").GetString(), 
+                    RoleID = element.GetProperty("roleID").GetInt32(), 
+                    RoleName = element.GetProperty("roleName").GetString()
+                })
+                .ToList();
+
             showUserList = true;
             showCreateForm = false;
             showEditForm = false;
@@ -202,15 +214,15 @@
     
     private async Task createUser()
     {
-
-        var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/Users", user);
+        var content = new StringContent(JsonSerializer.Serialize(user), Encoding.UTF8, "application/json");
+        var response = await httpClient.PostAsync("http://localhost:5052/api/Users", content);
 
         if (response.IsSuccessStatusCode)
         {
             createMessage = "User created with success";
             user = new UserModel();
             showCreateForm = false;
-            await ListUsers();
+            await ListAllUsers();
         }
         else
         {
@@ -244,7 +256,7 @@
             if (response.IsSuccessStatusCode)
             {
                 actionMessage = "User deleted successfully";
-                await ListUsers();
+                await ListAllUsers();
             }
             else
             {
@@ -296,18 +308,24 @@
 
     private async Task UpdateUser()
     {
-        var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Users/{userToEdit.UserID}", userToEdit);
+        var content = new StringContent(JsonSerializer.Serialize(userToEdit), Encoding.UTF8, "application/json");
+        var response = await httpClient.PutAsync($"http://localhost:5052/api/Users/{userToEdit.UserID}", content);
 
         if (response.IsSuccessStatusCode)
         {
             actionMessage = "User updated successfully";
             userToEdit = null;
             editFormVisible = false;
-            await ListUsers();
+            await ListAllUsers();
         }
         else
         {
             actionMessage = "Failed to update user";
         }
+    }
+    private void CancelEdit()
+    {
+        showEditForm = false;
+        user = new UserModel();
     }
 }

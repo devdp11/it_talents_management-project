@@ -31,4 +31,8 @@
       <Folder Include="Entities\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="Models\TalentModel.cs" />
+    </ItemGroup>
+
 </Project>
