@@ -23,7 +23,7 @@ CREATE TABLE Professionals (
                                Country VARCHAR(100) NOT NULL,
                                Email VARCHAR(100) NOT NULL,
                                HourlyRate NUMERIC NOT NULL,
-                               Visibility VARCHAR(50) NOT NULL
+                               Visibility BOOL NOT NULL
 );
 
 CREATE TABLE Professional_Skills (
