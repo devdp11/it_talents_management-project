@@ -154,7 +154,7 @@ namespace Backend.Controllers
             }
 
             // Para atualizar a RoleID, primeiro certifique-se de que a nova RoleID corresponde a um Role existente
-            var role = _dbContext.Roles.FirstOrDefault(r => r.Roleid == updatedUser.RoleID);
+            var role = _dbContext.Roles.FirstOrDefault(r => r.Name == updatedUser.RoleName);
             if (role == null)
             {
                 return BadRequest("Role does not exist");
@@ -168,7 +168,7 @@ namespace Backend.Controllers
 
             user.Username = updatedUser.Username;
             user.Password = updatedUser.Password;
-            user.Roleid = updatedUser.RoleID;
+            user.Roleid = role.Roleid;
             _dbContext.SaveChanges();
 
             return NoContent();
