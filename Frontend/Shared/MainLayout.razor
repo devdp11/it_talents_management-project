@@ -4,6 +4,7 @@
 @inject AuthService authService
 @implements IDisposable
 @inject ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
 
 <div class="page">
     <div class="sidebar">
@@ -14,7 +15,7 @@
         <div class="top-row px-4">
             @if(_isAuthenticated)
             {
-                <a href="/Login">Logout</a>
+                <button @onclick="HandleLogout">Logout</button>
             }
         </div>
         <article class="content px-4">
@@ -34,5 +35,13 @@
     public void Dispose()
     {
         authService.OnChange -= StateHasChanged;
+    }
+    
+    private async Task HandleLogout()
+    {
+        await LocalStorage.RemoveItemAsync("isAuthenticated");
+        await LocalStorage.RemoveItemAsync("role");
+        _isAuthenticated = false;
+        NavigationManager.NavigateTo("/login");
     }
 }
