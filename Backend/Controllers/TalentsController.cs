@@ -70,6 +70,36 @@ namespace Backend.Controllers
             }
             return Ok(professional);
         }
+        
+        [HttpGet("skill/{skillName}")]
+        public ActionResult<IEnumerable<Professional>> GetProfessionalsBySkill(string skillName)
+        {
+            var professionals = _dbContext.Professionals
+                .Where(p => p.ProfessionalSkills.Any(ps => ps.Skill.Name.ToLower() == skillName.ToLower()))
+                .ToList();
+
+            if (professionals.Count == 0)
+            {
+                return NotFound();
+            }
+
+            return Ok(professionals);
+        }
+        
+        [HttpGet("skill/{skillId}")]
+        public ActionResult<IEnumerable<Professional>> GetProfessionalsBySkill(int skillId)
+        {
+            var professionals = _dbContext.Professionals
+                .Where(p => p.ProfessionalSkills.Any(ps => ps.Skillid == skillId))
+                .ToList();
+
+            if (professionals.Count == 0)
+            {
+                return NotFound();
+            }
+
+            return Ok(professionals);
+        }
 
         [HttpPut("{id}")]
         public IActionResult UpdateProfessional(int id, UpdateProfessionalModel updatedProfessional)
