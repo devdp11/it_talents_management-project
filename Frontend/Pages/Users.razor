@@ -9,7 +9,16 @@
 <h1>Users</h1>
 
 <style>
-
+    .button {
+        margin-top: 20px;
+    }
+    label {
+        margin-top: 10px;
+        color: royalblue;
+    }
+    InputText{
+        border-color: royalblue;
+    }
 </style>
 
 
@@ -45,7 +54,7 @@
             <ValidationMessage For="@(() => user.RoleName)"/>
         </div>
         
-        <div class="text-center">
+        <div class="button">
             <button class="btn btn-primary" type="submit">Create</button>
         </div>
 
@@ -139,7 +148,7 @@
             <ValidationMessage For="@(() => userToEdit.RoleID)"/>
         </div>
         
-        <div class="text-center">
+        <div class="button">
             <button class="btn btn-primary" type="submit">Update</button>
         </div>
 
@@ -198,14 +207,14 @@
 
         if (response.IsSuccessStatusCode)
         {
-            createMessage = "Utilizador criado com sucesso";
+            createMessage = "User created with success";
             user = new UserModel();
             showCreateForm = false;
             await ListUsers();
         }
         else
         {
-            createMessage = "Falha ao criar o Utilizador";
+            createMessage = "Error creating user";
         }
     }
 

@@ -1,5 +1,258 @@
 ﻿@page "/skills"
+@using Frontend.Models
+@inject HttpClient httpClient
+@using Microsoft.AspNetCore.Components
 
 <PageTitle>Skills</PageTitle>
 
 <h1>Skills Page</h1>
+
+<style>
+    .button {
+        margin-top: 20px;
+    }
+    label {
+        margin-top: 10px;
+        color: royalblue;
+    }
+    InputText{
+        border-color: royalblue;    
+    }
+</style>
+
+<div class="text-center">
+    <button class="btn btn-primary custom-btn" @onclick="ShowCreateForm">Add Skills</button>
+    <button class="btn btn-primary custom-btn" @onclick="ListAllSkills">List Skills</button>
+</div>
+
+@if (showCreateForm)
+{
+    <h4>Add Users</h4>
+
+    <EditForm Model="@skill" OnValidSubmit="createSkill">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <InputText type="name" class="form-control" id="name" @bind-Value="@skill.Name" />
+            <ValidationMessage For="@(() => skill.Name)" />
+        </div>
+        
+        <div class="form-group">
+            <label for="professionalArea">Professional Area</label>
+            <InputText type="professionalArea" class="form-control" id="professionalArea" @bind-Value="@skill.ProfessionalArea"/>
+            <ValidationMessage For="@(() => skill.ProfessionalArea)"/>
+        </div>
+
+        <div class="button">
+            <button class="btn btn-primary" type="submit">Create</button>
+        </div>
+
+        <div>
+            @if (!string.IsNullOrEmpty(createMessage))
+            {
+                <div class="alert alert-info">@createMessage</div>
+            }
+        </div>
+    </EditForm>
+}
+
+@if (showSkillList)
+{
+    <h4>List Users</h4>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Professional Area</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var skill in skills)
+        {
+            <tr>
+                <td>@skill.SkillID</td>
+                <td>@skill.Name</td>
+                <td>@skill.ProfessionalArea</td>
+                <td>
+                    <button class="btn btn-secondary" @onclick="() => ShowEditForm(skill)">Edit</button>
+                    <button class="btn btn-danger" @onclick="() => ShowDeleteConfirmation(skill.SkillID)">Delete</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@if (showEditForm)
+{
+    <h4>Edit Skill</h4>
+
+    <EditForm Model="@skill" OnValidSubmit="EditSkill">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <InputText type="name" class="form-control" id="name" @bind-Value="@skill.Name" />
+            <ValidationMessage For="@(() => skill.Name)" />
+        </div>
+        
+        <div class="form-group">
+            <label for="professionalArea">Professional Area</label>
+            <InputText type="professionalArea" class="form-control" id="professionalArea" @bind-Value="@skill.ProfessionalArea"/>
+            <ValidationMessage For="@(() => skill.ProfessionalArea)"/>
+        </div>
+
+        <div class="button">
+            <button class="btn btn-primary" type="submit">Update</button>
+            <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+        </div>
+
+        <div>
+            @if (!string.IsNullOrEmpty(editMessage))
+            {
+                <div class="alert alert-info">@editMessage</div>
+            }
+        </div>
+    </EditForm>
+}
+
+@if (showDeleteConfirmation)
+{
+    <h4>Delete Skill</h4>
+    <p>Are you sure you want to delete this skill?</p>
+    <button class="btn btn-danger" @onclick="DeleteSkill">Yes, delete it</button>
+    <button class="btn btn-secondary" @onclick="ShowList">No, go back</button>
+}
+
+@code {
+    private string editMessage;
+    private string Message = "";
+    private List<SkillModel> skills;
+    private SkillModel skill = new SkillModel();
+    private int editSkillId;
+    private int deleteSkillId;
+    private string createMessage;
+    bool showCreateForm = false;
+    bool showEditForm = false;
+    bool showDeleteConfirmation = false;
+    private bool showSkillList = false;
+    
+    private async Task ListSkills()
+    {
+        skills = await httpClient.GetFromJsonAsync<List<SkillModel>>("http://localhost:5052/api/Skills");
+    }
+    
+    private async Task ListAllSkills()
+    {
+        var response = await httpClient.GetAsync("http://localhost:5052/api/Skills");
+
+        if (response.IsSuccessStatusCode)
+        {
+            skills = await response.Content.ReadFromJsonAsync<List<SkillModel>>();
+            showSkillList = true;
+            showCreateForm = false;
+            showEditForm = false;
+            showDeleteConfirmation = false;
+        }
+        else
+        {
+            skills = new List<SkillModel>();
+            showSkillList = false;
+            showCreateForm = false; 
+            showEditForm = false;
+            showDeleteConfirmation = false;
+        }
+    }
+    
+    private async Task createSkill()
+    {
+
+        var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/Skills", skill);
+
+        if (response.IsSuccessStatusCode)
+        {
+            createMessage = "Skill created with success";
+            skill = new SkillModel();
+            showCreateForm = false;
+            await ListSkills();
+        }
+        else
+        {
+            createMessage = "Error creating skill";
+        }
+    }
+
+    private void ShowCreateForm()
+    {
+        skill = new SkillModel();
+        showCreateForm = true;
+        showEditForm = false;
+        showDeleteConfirmation = false;
+        showSkillList = false;
+    }
+    
+    private async Task EditSkill()
+    {
+        var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Skills/{skill.SkillID}", skill);
+
+        if (response.IsSuccessStatusCode)
+        {
+            editMessage = "Skill updated successfully";
+            skill = new SkillModel();
+            showEditForm = false;
+            await ListSkills();
+        }
+        else
+        {
+            editMessage = "Error updating skill";
+        }
+    }
+
+    private void ShowEditForm(SkillModel skillToEdit)
+    {
+        skill = skillToEdit;
+        editSkillId = skillToEdit.SkillID;
+        showCreateForm = false;
+        showEditForm = true;
+        showDeleteConfirmation = false;
+        showSkillList = false;
+    }
+
+    private async Task DeleteSkill()
+    {
+        var response = await httpClient.DeleteAsync($"http://localhost:5052/api/Skills/{deleteSkillId}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            Message = "Skill deleted successfully";
+            await ListAllSkills();
+            ShowList();
+        }
+        else
+        {
+            Message = "Error deleting skill";
+        }
+    }
+
+    private void ShowDeleteConfirmation(int idToDelete)
+    {
+        deleteSkillId = idToDelete;
+        showDeleteConfirmation = true;
+        showCreateForm = false;
+        showEditForm = false;
+        showSkillList = false;
+    }
+
+    private void ShowList()
+    {
+        showDeleteConfirmation = false;
+        showCreateForm = false;
+        showEditForm = false;
+        showSkillList = true;
+    }
+    
+    private void CancelEdit()
+    {
+        showEditForm = false;
+        skill = new SkillModel();
+    }
+}
