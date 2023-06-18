@@ -1,5 +1,151 @@
-﻿@page "/users"
+﻿@using Microsoft.AspNetCore.Components
+@using BusinessLogic.Models
+@inject HttpClient httpClient
+@using Frontend.Models
+@page "/users"
 
 <PageTitle>Users</PageTitle>
 
-<h3>Users</h3>
+<h1>Users</h1>
+
+<style>
+
+</style>
+
+
+
+<div class="text-center">
+    <button class="btn btn-primary custom-btn" @onclick="ShowCreateForm">Add Users</button>
+    <button class="btn btn-primary custom-btn" @onclick="ListAllUsers">List Users</button>
+</div>
+
+@if (showCreateForm)
+{
+    <h4>Add Users</h4>
+
+    <EditForm Model="@user" OnValidSubmit="createUser">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <InputText type="username" class="form-control" id="username" @bind-Value="@user.Username" />
+            <ValidationMessage For="@(() => user.Username)" />
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <InputText type="password" class="form-control" id="password" @bind-Value="@user.Password"/>
+            <ValidationMessage For="@(() => user.Password)"/>
+        </div>
+
+        <div class="form-group">
+            <label for="userRole">User Role</label>
+            <select id="userRole" class="form-control" @bind="@user.RoleName" required>
+                <option value="manager">manager</option>
+                <option value="user">user</option>
+            </select>
+            <ValidationMessage For="@(() => user.RoleID)"/>
+        </div>
+        
+        <div class="text-center">
+            <button class="btn btn-primary" type="submit">Create</button>
+        </div>
+
+        <div>
+            @if (!string.IsNullOrEmpty(createMessage))
+            {
+                <div class="alert alert-info">@createMessage</div>
+            }
+        </div>
+    </EditForm>
+}
+
+
+@if (showUserList)
+{
+    <h4>User List</h4>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Id</th>
+            <th>Username</th>
+            <th>Role</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var user in users)
+        {
+            <tr>
+                <td>@user.UserID</td>
+                <td>@user.Username</td>
+                <td>@user.RoleName</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private string actionMessage = "";
+    private List<UserModel> users;
+    private UserModel user = new UserModel();
+    private int editUtilizadorId;
+    private int deleteUtilizadorId;
+    private string createMessage;
+    bool showCreateForm = false;
+    bool showEditForm = false;
+    bool showDeleteConfirmation = false;
+    private bool showUserList = false;
+    
+    private async Task ListUsers()
+    {
+        users = await httpClient.GetFromJsonAsync<List<UserModel>>("http://localhost:5052/api/Users");
+    }
+    
+    private async Task ListAllUsers()
+    {
+        var response = await httpClient.GetAsync("http://localhost:5052/api/Users");
+
+        if (response.IsSuccessStatusCode)
+        {
+            users = await response.Content.ReadFromJsonAsync<List<UserModel>>();
+            showUserList = true;
+            showCreateForm = false;
+            showEditForm = false;
+            showDeleteConfirmation = false;
+        }
+        else
+        {
+            users = new List<UserModel>();
+            showUserList = false;
+            showCreateForm = false; 
+            showEditForm = false;
+            showDeleteConfirmation = false;
+        }
+    }
+    
+    private async Task createUser()
+    {
+        var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/Users", user);
+
+        if (response.IsSuccessStatusCode)
+        {
+            createMessage = "Utilizador criado com sucesso";
+            user = new UserModel();
+            showCreateForm = false;
+            await ListUsers();
+        }
+        else
+        {
+            createMessage = "Falha ao criar o Utilizador";
+        }
+    }
+
+    private void ShowCreateForm()
+    {
+        user = new UserModel();
+        showCreateForm = true;
+        showEditForm = false;
+        showDeleteConfirmation = false;
+        showUserList = false;
+    }
+}
