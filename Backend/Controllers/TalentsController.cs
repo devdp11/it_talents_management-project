@@ -115,56 +115,7 @@ namespace Backend.Controllers
             professional.Email = updatedProfessional.Email;
             professional.Hourlyrate = updatedProfessional.HourlyRate;
             professional.Visibility = updatedProfessional.Visibility;
-            
-            if (updatedProfessional.ProfessionalSkills != null)
-            {
-                foreach (var skillModel in updatedProfessional.ProfessionalSkills)
-                {
-                    var skill = _dbContext.Skills.FirstOrDefault(s => s.Skillid == skillModel.SkillID);
-                    if (skill == null)
-                    {
-                        return BadRequest($"Skill with id {skillModel.SkillID} does not exist");
-                    }
-
-                    var existingProfessionalSkill = _dbContext.ProfessionalSkills
-                        .FirstOrDefault(ps => ps.Professionalid == professional.Professionalid && ps.Skillid == skillModel.SkillID);
-
-                    if (existingProfessionalSkill != null)
-                    {
-                        existingProfessionalSkill.Yearsexperience = skillModel.YearsExperience;
-                    }
-                    else
-                    {
-                        var professionalSkill = new ProfessionalSkill
-                        {
-                            Professionalid = professional.Professionalid,
-                            Skillid = skillModel.SkillID,
-                            Yearsexperience = skillModel.YearsExperience,
-                            Professional = professional,
-                            Skill = skill
-                        };
-
-                        _dbContext.ProfessionalSkills.Add(professionalSkill);
-                    }
-                }
-            }
-
-            if (updatedProfessional.Experiences != null)
-            {
-                foreach (var experience in updatedProfessional.Experiences.Select(experienceModel => new Experience
-                         {
-                             Professionalid = professional.Professionalid,
-                             Title = experienceModel.Title,
-                             Company = experienceModel.Company,
-                             Startyear = experienceModel.StartYear,
-                             Endyear = experienceModel.EndYear,
-                             Professional = professional
-                         }))
-                {
-                    _dbContext.Experiences.Add(experience);
-                }
-            }
-
+    
             _dbContext.SaveChanges();
             return NoContent();
         }       

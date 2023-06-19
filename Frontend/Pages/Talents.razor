@@ -90,7 +90,7 @@
                 <th>Country</th>
                 <th>Email</th>
                 <th>Hourly Rate</th>
-                <th>Visibility</th> <!-- Nova coluna -->
+                <th>Visibility</th>
             </tr>
         </thead>
         <tbody>
@@ -102,7 +102,7 @@
                     <td>@professional.Country</td>
                     <td>@professional.Email</td>
                     <td>@professional.HourlyRate</td>
-                    <td>@(professional.Visibility == "true" ? "Publico" : "Privado")</td> <!-- Exibe "Publico" se Visibility for true, caso contrário, exibe "Privado" -->
+                    <td>@(professional.Visibility ? "Publico" : "Privado")</td> 
                     <td>
                         <button class="btn btn-primary" @onclick="() => ShowEditForm(professional)">Edit</button>
                         <button class="btn btn-danger" @onclick="() => ShowDeleteConfirmation(professional.ProfessionalID)">Delete</button>
@@ -117,23 +117,35 @@
 {
     <h4>Edit Profile</h4>
 
-    <EditForm Model="@professional" OnValidSubmit="EditProfile">
+    <EditForm Model="@updateProfessionalModel" OnValidSubmit="EditProfile">
         <div class="form-group">
             <label for="name">Name</label>
-            <InputText type="name" class="form-control" id="name" @bind-Value="@professional.Name" />
+            <InputText class="form-control" id="name" @bind-Value="@professional.Name" />
             <ValidationMessage For="@(() => professional.Name)" />
         </div>
         
         <div class="form-group">
             <label for="country">Country</label>
-            <InputText type="country" class="form-control" id="country" @bind-Value="@professional.Country"/>
+            <InputText class="form-control" id="country" @bind-Value="@professional.Country"/>
             <ValidationMessage For="@(() => professional.Country)"/>
         </div>
         
         <div class="form-group">
             <label for="email">Email</label>
-            <InputText type="email" class="form-control" id="email" @bind-Value="@professional.Email"/>
+            <InputText class="form-control" id="email" @bind-Value="@professional.Email"/>
             <ValidationMessage For="@(() => professional.Email)"/>
+        </div>
+        
+        <div class="form-group">
+            <label for="hourlyRate">Hourly Rate</label>
+            <InputNumber class="form-control" id="hourlyRate" @bind-Value="@professional.HourlyRate"/>
+            <ValidationMessage For="@(() => professional.HourlyRate)"/>
+        </div>
+        
+        <div class="form-group">
+            <label for="visibility">Visibility</label>
+            <InputCheckbox class="form-check-input" id="visibility" @bind-Value="@professional.Visibility"/>
+            <ValidationMessage For="@(() => professional.Visibility)"/>
         </div>
 
         <div class="button">
@@ -147,6 +159,31 @@
                 <div class="alert alert-info">@editMessage</div>
             }
         </div>
+    </EditForm>
+}
+
+@if (showAddSkillForm)
+{
+    <h4>Add Professional Skill</h4>
+
+    <EditForm Model="@newSkill" OnValidSubmit="SaveSkill">
+        <div class="form-group">
+            <label for="skill">Skill</label>
+            <InputSelect class="form-control" id="skill" @bind-Value="@newSkill.SkillID">
+                @foreach (var skill in allSkills)
+                {
+                    <option value="@skill.SkillID">@skill.Name</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div class="form-group">
+            <label for="yearsExperience">Years of Experience</label>
+            <InputNumber class="form-control" id="yearsExperience" @bind-Value="@newSkill.YearsExperience" />
+        </div>
+
+        <button class="btn btn-primary" type="submit">Add Skill</button>
+        <button class="btn btn-secondary" @onclick="() => showAddSkillForm = false">Cancel</button>
     </EditForm>
 }
 
@@ -171,6 +208,10 @@
     bool showDeleteConfirmation = false;
     private bool showSkillList = false;
     private CreateProfessionalModel createProfessionalModel = new CreateProfessionalModel();
+    private UpdateProfessionalModel updateProfessionalModel = new UpdateProfessionalModel();
+    private List<SkillModel> allSkills;
+    private AddProfessionalSkillModel newSkill = new AddProfessionalSkillModel();
+    private bool showAddSkillForm = false;
     private int _userID;
     
     private async Task ListProfiles()
@@ -201,7 +242,7 @@
                     Country = (string)p["country"] ?? "",
                     Email = (string)p["email"] ?? "",
                     HourlyRate = (int?)p["hourlyrate"] ?? 0,
-                    Visibility = (bool?)p["visibility"] == true ? "true" : "false"
+                    Visibility = professional.Visibility
                 }).ToList();
 
                 showSkillList = true;
@@ -262,12 +303,45 @@
         showCreateForm = false;
         createProfessionalModel = new CreateProfessionalModel();
     }
+    
+    private void FillModel(ProfessionalModel professional)
+    {
+        editProfessionalId = professional.ProfessionalID; // Guarda o ID do profissional a ser editado
+    
+        updateProfessionalModel.Name = professional.Name;
+        updateProfessionalModel.Country = professional.Country;
+        updateProfessionalModel.Email = professional.Email;
+        updateProfessionalModel.HourlyRate = professional.HourlyRate;
+        updateProfessionalModel.Visibility = professional.Visibility;
+
+        if (professional.ProfessionalSkills != null)
+        {
+            updateProfessionalModel.ProfessionalSkills = professional.ProfessionalSkills.Select(ps => new AddProfessionalSkillModel
+            {
+                ProfessionalID = ps.ProfessionalID,
+                SkillID = ps.SkillID,
+                YearsExperience = ps.YearsExperience
+            }).ToList();
+        }
+
+        if (professional.Experiences != null)
+        {
+            updateProfessionalModel.Experiences = professional.Experiences.Select(e => new AddExperienceModel
+            {
+                ProfessionalID = e.ProfessionalID,
+                Title = e.Title,
+                Company = e.Company,
+                StartYear = e.StartYear,
+                EndYear = e.EndYear
+            }).ToList();
+        }
+    }
 
     
     private async Task EditProfile()
     {
-        var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Talents/{professional.ProfessionalID}", professional);
-
+        var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Talents/{editProfessionalId}", updateProfessionalModel);
+    
         if (response.IsSuccessStatusCode)
         {
             editMessage = "Talent Profile updated successfully";
@@ -283,13 +357,73 @@
 
     private void ShowEditForm(ProfessionalModel talentToEdit)
     {
-        professional = talentToEdit;
+        FillModel(talentToEdit);
         editProfessionalId = talentToEdit.ProfessionalID;
         showCreateForm = false;
         showEditForm = true;
         showDeleteConfirmation = false;
         showSkillList = false;
     }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        allSkills = await httpClient.GetFromJsonAsync<List<SkillModel>>("http://localhost:5052/api/Skills");
+        await ListProfiles();
+    }
+
+    private void AddProfessionalSkill()
+    {
+        newSkill = new AddProfessionalSkillModel();
+        showAddSkillForm = true;
+    }
+    
+    private async Task SaveSkill()
+    {
+        var response = await httpClient.PostAsJsonAsync($"http://localhost:5052/api/Talents/{editProfessionalId}/Skills", newSkill);
+
+        if (response.IsSuccessStatusCode)
+        {
+        // Reset the form
+            newSkill = new AddProfessionalSkillModel();
+            showAddSkillForm = false;
+
+        // Reload the profiles to show the newly added skill
+            await ListProfiles();
+        }
+        else
+        {
+        // Handle error (show a message, log the error, etc.)
+        }
+    }
+    
+    private async Task AddExperience()
+    {
+        // Crie um novo objeto de experiência com valores padrão
+        var defaultExperience = new AddExperienceModel
+        {
+            ProfessionalID = editProfessionalId, // ou outro valor apropriado
+            Title = "Título Padrão",
+            Company = "Empresa Padrão",
+            StartYear = DateTime.Now.Year,
+            EndYear = DateTime.Now.Year
+        };
+
+        // Adicione a experiência padrão ao perfil do profissional
+        updateProfessionalModel.Experiences.Add(defaultExperience);
+    
+        // Envie a requisição para o servidor
+        var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Talents/{editProfessionalId}", updateProfessionalModel);
+    
+        if (response.IsSuccessStatusCode)
+        {
+            // A experiência foi adicionada com sucesso
+        }
+        else
+        {
+            // Handle error
+        }
+    }
+    
 
     private async Task DeleteSkill()
     {

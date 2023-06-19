@@ -8,7 +8,7 @@ public class ProfessionalModel
     public string Country { get; set; }
     public string Email { get; set; }
     public decimal HourlyRate { get; set; }
-    public string Visibility { get; set; }
+    public bool Visibility { get; set; }
     public UserModel User { get; set; }
     public List<ProfessionalSkillModel> ProfessionalSkills { get; set; }
     public List<ExperienceModel> Experiences { get; set; }
