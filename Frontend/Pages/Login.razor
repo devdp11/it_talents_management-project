@@ -113,6 +113,7 @@
                 if(result == null){return;}
                 await localstorage.SetItemAsync("isAuthenticated", true);
                 await localstorage.SetItemAsync("role", result.RoleName);
+                await localstorage.SetItemAsync("userID", result.UserID);
                 Console.WriteLine("Success");
                 navigationManager.NavigateTo("/", true);
             }

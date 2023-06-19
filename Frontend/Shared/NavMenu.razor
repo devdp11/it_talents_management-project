@@ -94,10 +94,12 @@
 
     private bool _isAuthenticated = false;
     private string _userRole ="";
+    private int _userID = 0;
     protected override async Task OnInitializedAsync()
     {
         _isAuthenticated = await LocalStorage.GetItemAsync<bool>("isAuthenticated");
         _userRole = await LocalStorage.GetItemAsync<string>("role");
+        _userID = await LocalStorage.GetItemAsync<int>("userID");
         authService.OnChange += StateHasChanged;
     }
 

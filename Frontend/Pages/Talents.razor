@@ -2,10 +2,15 @@
 @inject HttpClient httpClient
 @using Microsoft.AspNetCore.Components
 @using BusinessLogic.Models
+@using Blazored.LocalStorage
+@using System.Text
+@using System.Text.Json
+@inject ILocalStorageService localstorage
+@using Newtonsoft.Json.Linq;
 @page "/talents"
 
 <PageTitle>Talents</PageTitle>
-
+<h1>Talents Page</h1>
 <style>
     .button {
         margin-top: 20px;
@@ -26,7 +31,49 @@
 
 @if (showCreateForm)
 {
-    <h4>Add Users</h4>
+    <h4>Add Professionals</h4>
+    <EditForm Model="@createProfessionalModel" OnValidSubmit="createProfessional" OnInvalidSubmit="HandleInvalidSubmit">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <InputText class="form-control" id="name" @bind-Value="@createProfessionalModel.Name" />
+            <ValidationMessage For="@(() => createProfessionalModel.Name)" />
+        </div>
+
+        <div class="form-group">
+            <label for="country">Country</label>
+            <InputText class="form-control" id="country" @bind-Value="@createProfessionalModel.Country"/>
+            <ValidationMessage For="@(() => createProfessionalModel.Country)"/>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <InputText class="form-control" id="email" @bind-Value="@createProfessionalModel.Email"/>
+            <ValidationMessage For="@(() => createProfessionalModel.Email)"/>
+        </div>
+
+        <div class="form-group">
+            <label for="hourlyRate">Hourly Rate</label>
+            <InputNumber class="form-control" id="hourlyRate" @bind-Value="@createProfessionalModel.HourlyRate"/>
+            <ValidationMessage For="@(() => createProfessionalModel.HourlyRate)"/>
+        </div>
+
+        <div class="form-group">
+            <label for="visibility">Visibility</label>
+            <InputCheckbox class="form-check-input" id="visibility" @bind-Value="@createProfessionalModel.Visibility"/>
+            <ValidationMessage For="@(() => createProfessionalModel.Visibility)"/>
+        </div>
+
+        <div class="button">
+            <button class="btn btn-primary" type="submit">Create</button>
+            <button class="btn btn-danger" @onclick="CancelCreate">Cancel</button>
+        </div>
+        <div>
+            @if (!string.IsNullOrEmpty(createMessage))
+            {
+                <div class="alert alert-info">@createMessage</div>
+            }
+        </div>
+    </EditForm>
 
     
 }
@@ -37,30 +84,31 @@
 
     <table class="table">
         <thead>
-        <tr>
-            <th>Id</th>
-            <th>Name</th>
-            <th>Country</th>
-            <th>Email</th>
-            <th>Hourly Rate</th>
-        </tr>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Country</th>
+                <th>Email</th>
+                <th>Hourly Rate</th>
+                <th>Visibility</th> <!-- Nova coluna -->
+            </tr>
         </thead>
         <tbody>
-        @foreach (var professional in professionals)
-        {
-            <tr>
-                <td>@professional.ProfessionalID</td>
-                <td>@professional.Name</td>
-                <td>@professional.Country</td>
-                <td>@professional.Email</td>
-                <td>@professional.HourlyRate</td>
-                
-                <td>
-                    <button class="btn btn-primary" @onclick="() => ShowEditForm(professional)">Edit</button>
-                    <button class="btn btn-danger" @onclick="() => ShowDeleteConfirmation(professional.ProfessionalID)">Delete</button>
-                </td>
-            </tr>
-        }
+            @foreach (var professional in professionals)
+            {
+                <tr>
+                    <td>@professional.ProfessionalID</td>
+                    <td>@professional.Name</td>
+                    <td>@professional.Country</td>
+                    <td>@professional.Email</td>
+                    <td>@professional.HourlyRate</td>
+                    <td>@(professional.Visibility == "true" ? "Publico" : "Privado")</td> <!-- Exibe "Publico" se Visibility for true, caso contrário, exibe "Privado" -->
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => ShowEditForm(professional)">Edit</button>
+                        <button class="btn btn-danger" @onclick="() => ShowDeleteConfirmation(professional.ProfessionalID)">Delete</button>
+                    </td>
+                </tr>
+            }
         </tbody>
     </table>
 }
@@ -122,6 +170,8 @@
     bool showEditForm = false;
     bool showDeleteConfirmation = false;
     private bool showSkillList = false;
+    private CreateProfessionalModel createProfessionalModel = new CreateProfessionalModel();
+    private int _userID;
     
     private async Task ListProfiles()
     {
@@ -134,11 +184,36 @@
 
         if (response.IsSuccessStatusCode)
         {
-            professionals = await response.Content.ReadFromJsonAsync<List<ProfessionalModel>>();
-            showSkillList = true;
-            showCreateForm = false;
-            showEditForm = false;
-            showDeleteConfirmation = false;
+            var responseString = await response.Content.ReadAsStringAsync();
+            try
+            {
+                JObject jsonResponse = JObject.Parse(responseString);
+
+                // Obtém a lista de profissionais
+                JArray professionalsArray = (JArray)jsonResponse["$values"];
+
+                // Limpa os dados
+                professionals = professionalsArray.Select(p => new ProfessionalModel
+                {
+                    ProfessionalID = (int?)p["professionalid"] ?? 0,
+                    UserID = (int?)p["userid"] ?? 0,
+                    Name = (string)p["name"] ?? "",
+                    Country = (string)p["country"] ?? "",
+                    Email = (string)p["email"] ?? "",
+                    HourlyRate = (int?)p["hourlyrate"] ?? 0,
+                    Visibility = (bool?)p["visibility"] == true ? "true" : "false"
+                }).ToList();
+
+                showSkillList = true;
+                showCreateForm = false;
+                showEditForm = false;
+                showDeleteConfirmation = false;
+            }
+            catch (JsonException e)
+            {
+                Console.WriteLine("Failed to deserialize response: " + e.Message);
+                Console.WriteLine("Response was: " + responseString);
+            }
         }
         else
         {
@@ -150,15 +225,20 @@
         }
     }
     
-    private async Task createSkill()
+    private async Task createProfessional()
     {
+        // Pega o userID do LocalStorage
+        _userID = await localstorage.GetItemAsync<int>("userID");
 
-        var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/Talents", professional);
+        // Adiciona o userID ao modelo  
+        createProfessionalModel.UserID = _userID;
 
+        var json = JsonSerializer.Serialize(createProfessionalModel);
+        var response = await httpClient.PostAsync("http://localhost:5052/api/Talents", new StringContent(json, Encoding.UTF8, "application/json"));
         if (response.IsSuccessStatusCode)
         {
             createMessage = "Talent Profile created with success";
-            professional = new ProfessionalModel();
+            createProfessionalModel = new CreateProfessionalModel();
             showCreateForm = false;
             await ListProfiles();
         }
@@ -170,12 +250,19 @@
 
     private void ShowCreateForm()
     {
-        professional = new ProfessionalModel();
+        createProfessionalModel = new CreateProfessionalModel();
         showCreateForm = true;
         showEditForm = false;
         showDeleteConfirmation = false;
         showSkillList = false;
     }
+    
+    private void CancelCreate()
+    {
+        showCreateForm = false;
+        createProfessionalModel = new CreateProfessionalModel();
+    }
+
     
     private async Task EditProfile()
     {
@@ -241,5 +328,9 @@
     {
         showEditForm = false;
         professional = new ProfessionalModel();
+    }
+    private void HandleInvalidSubmit(EditContext context)
+    {
+        Console.WriteLine("Failed to submit form");
     }
 }
