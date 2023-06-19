@@ -1,11 +1,7 @@
-﻿using BusinessLogic.Entities;
+﻿namespace BusinessLogic.Models;
 
-namespace BusinessLogic.Models;
-
-public class JobProposalModel
+public class JobProposalUpdateModel
 {
-    public int JobProposalID { get; set; }
-    public int UserID { get; set; }
     public int ClientID { get; set; }
     public string Name { get; set; }
     public string TalentCategory { get; set; }

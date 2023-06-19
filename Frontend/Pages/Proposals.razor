@@ -1,1 +1,443 @@
-@page "/proposals"
+@using Microsoft.AspNetCore.Components
+@using BusinessLogic.Models
+@inject HttpClient httpClient
+@using Frontend.Models
+@using System.Text.Json
+@using System.Text
+@using Newtonsoft.Json
+@using JsonSerializer = System.Text.Json.JsonSerializer
+@page "/Proposals"
+
+<PageTitle>Job Proposals</PageTitle>
+
+<style>
+        .button {
+            margin-top: 20px;
+        }
+        label {
+            margin-top: 10px;
+            color: royalblue;
+        }
+        InputText{
+            border-color: royalblue;
+        }
+</style>
+
+
+<div class="text-center">
+    <button class="btn btn-primary" @onclick="ShowCreateForm">Add Job Proposal</button>
+    <button class="btn btn-primary" @onclick="ListAllProposals">List Job Proposals</button>
+</div>
+
+@if (showCreateForm)
+{
+    <h4>Add Job Proposal</h4>
+
+    <EditForm Model="@proposal" OnValidSubmit="createJobProposal">
+        <div class="form-group">
+            <label for="clientId">Client ID</label>
+            <InputNumber class="form-control" id="clientId" @bind-Value="@proposal.ClientID" />
+            <ValidationMessage For="@(() => proposal.ClientID)" />
+        </div>
+        <div class="form-group">
+            <label for="name">Name</label>
+            <InputText class="form-control" id="name" @bind-Value="@proposal.Name" />
+            <ValidationMessage For="@(() => proposal.Name)" />
+        </div>
+        <div class="form-group">
+            <label for="talentCategory">Talent Category</label>
+            <InputText class="form-control" id="talentCategory" @bind-Value="@proposal.TalentCategory" />
+            <ValidationMessage For="@(() => proposal.TalentCategory)" />
+        </div>
+        <div class="form-group">
+            <label for="totalHours">Total Hours</label>
+            <InputNumber class="form-control" id="totalHours" @bind-Value="@proposal.TotalHours" />
+            <ValidationMessage For="@(() => proposal.TotalHours)" />
+        </div>
+        <div class="form-group">
+            <label for="jobDescription">Job Description</label>
+            <InputTextArea class="form-control" id="jobDescription" @bind-Value="@proposal.JobDescription" />
+            <ValidationMessage For="@(() => proposal.JobDescription)" />
+        </div>
+            @foreach (var jobProposalSkill in proposalToEdit.JobproposalSkill)
+                {
+                    int currentIndex = proposalToEdit.JobproposalSkill.IndexOf(jobProposalSkill);
+                    <div class="form-group">
+                        <label for="skill@currentIndex">Skill @currentIndex</label>
+                        <select class="form-control" id="skill@currentIndex" @bind="jobProposalSkill.SkillID">
+                            @foreach (var skill in allSkills)
+                            {
+                                <option value="@skill.SkillID">@skill.Name</option>
+                            }
+                        </select>
+                    </div>
+                }
+        <button type="submit" class="btn btn-primary mt-3">Create</button>
+    </EditForm>
+}
+
+@if (showJobProposalList)
+{
+    <h4>Job Proposal List</h4>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Description</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var proposal in jobProposals)
+        {
+            <tr>
+                <td>@proposal.JobProposalID</td>
+                <td>@proposal.Name</td>
+                <td>@proposal.JobDescription</td>
+                <td>
+                    <button class="btn btn-primary" @onclick="() => ShowEditJobProposalForm(proposal)">Edit</button>
+                    <button class="btn btn-danger" @onclick="() => ShowDeleteConfirmation(proposal.JobProposalID)">Delete</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@if (showDeleteConfirmation)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this proposal?</p>
+                    @if (!string.IsNullOrEmpty(actionMessage))
+                    {
+                        <div class="alert alert-info">@actionMessage</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" @onclick="ConfirmDelete">Confirm</button>
+                    <button type="button" class="btn btn-danger" @onclick="CancelDelete">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (editFormVisible)
+{
+    <h4>Edit Job Proposal</h4>
+
+    <EditForm Model="@proposalToEdit" OnValidSubmit="UpdateJobProposal">
+        <div class="form-group">
+            <label for="clientId">Client ID</label>
+            <InputNumber class="form-control" id="clientId" @bind-Value="@proposalToEdit.ClientID" />
+            <ValidationMessage For="@(() => proposalToEdit.ClientID)" />
+        </div>
+        <div class="form-group">
+            <label for="name">Name</label>
+            <InputText class="form-control" id="name" @bind-Value="@proposalToEdit.Name" />
+            <ValidationMessage For="@(() => proposalToEdit.Name)" />
+        </div>
+        <div class="form-group">
+            <label for="talentCategory">Talent Category</label>
+            <InputText class="form-control" id="talentCategory" @bind-Value="@proposalToEdit.TalentCategory" />
+            <ValidationMessage For="@(() => proposalToEdit.TalentCategory)" />
+        </div>
+        <div class="form-group">
+            <label for="totalHours">Total Hours</label>
+            <InputNumber class="form-control" id="totalHours" @bind-Value="@proposalToEdit.TotalHours" />
+            <ValidationMessage For="@(() => proposalToEdit.TotalHours)" />
+        </div>
+        <div class="form-group">
+            <label for="jobDescription">Job Description</label>
+            <InputTextArea class="form-control" id="jobDescription" @bind-Value="@proposalToEdit.JobDescription" />
+            <ValidationMessage For="@(() => proposalToEdit.JobDescription)" />
+        </div>
+        @foreach (var jobProposalSkill in proposalToEdit.JobproposalSkill)
+                {
+                    int currentIndex = proposalToEdit.JobproposalSkill.IndexOf(jobProposalSkill);
+                    <div class="form-group">
+                        <label for="skill@currentIndex">Skill @currentIndex</label>
+                        <select class="form-control" id="skill@currentIndex" @bind="jobProposalSkill.SkillID">
+                            @foreach (var skill in allSkills)
+                            {
+                                <option value="@skill.SkillID">@skill.Name</option>
+                            }
+                        </select>
+                    </div>
+                }
+        <button type="submit" class="btn btn-primary mt-3">Update</button>
+    </EditForm>
+}
+
+@code {
+    private string actionMessage = "";
+    private List<JobProposalModel> jobProposals;
+    private JobProposalModel proposal = new JobProposalModel();
+    private int editProposalId;
+    private int deleteProposalId;
+    private string createMessage;
+    bool showCreateForm = false;
+    bool showEditForm = false;
+    bool showDeleteConfirmation = false;
+    private bool showJobProposalList = false;
+    private List<SkillModel> allSkills;
+    private JobProposalSkillModel newJobSkill = new JobProposalSkillModel();
+    
+    private async Task ListProposals()
+    {
+        jobProposals = await httpClient.GetFromJsonAsync<List<JobProposalModel>>("http://localhost:5052/api/Proposals");
+    }
+    
+    private async Task ListAllProposals()
+    {
+        var response = await httpClient.GetAsync("http://localhost:5052/api/Proposals");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            var document = JsonDocument.Parse(jsonResponse);
+
+            jobProposals = document.RootElement.GetProperty("$values").EnumerateArray()
+                .Select(element => new JobProposalModel
+                { 
+                    JobProposalID = element.GetProperty("proposalID").GetInt32(), 
+                    Name = element.GetProperty("Name").GetString(), 
+                    JobDescription = element.GetProperty("JobDescription").GetString(), 
+                    UserID = element.GetProperty("userID").GetInt32(),
+                })
+                .ToList();
+
+            showJobProposalList = true;
+            showCreateForm = false;
+            showEditForm = false;
+            showDeleteConfirmation = false;
+        }
+        else
+        {
+            jobProposals = new List<JobProposalModel>();
+            showJobProposalList = false;
+            showCreateForm = false; 
+            showEditForm = false;
+            showDeleteConfirmation = false;
+        }
+    }
+    
+    private async Task createJobProposal()
+    {
+        var content = new StringContent(JsonSerializer.Serialize(proposal), Encoding.UTF8, "application/json");
+        var response = await httpClient.PostAsync("http://localhost:5052/api/Proposals", content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            createMessage = "Job Proposal created with success";
+            proposal = new JobProposalModel();
+            showCreateForm = false;
+            await ListAllProposals();
+        }
+        else
+        {
+            createMessage = "Error creating Job Proposal";
+        }
+    }
+
+    private void ShowCreateForm()
+    {
+        proposal = new JobProposalModel();
+        showCreateForm = true;
+        showEditForm = false;
+        showDeleteConfirmation = false;
+        showJobProposalList = false;
+    }
+    
+    private async Task deleteJobProposal(int proposalId)
+    {
+        var response = await httpClient.DeleteAsync($"http://localhost:5052/api/Proposals/{proposalId}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            actionMessage = "Job Proposal deleted successfully";
+            await ListAllProposals();
+        }
+        else
+        {
+            actionMessage = "Failed to delete Job Proposal";
+        }
+    }
+    
+    private int proposalIdToDelete;
+    
+    private void ShowDeleteConfirmation(int proposalId)
+    {
+        actionMessage = "";
+        proposalIdToDelete = proposalId;
+        showDeleteConfirmation = true;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        showDeleteConfirmation = false;
+        await deleteJobProposal(proposalIdToDelete);
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteConfirmation = false;
+    }
+    
+    private JobProposalModel proposalToEdit;
+    bool editFormVisible = false;
+
+    private void ShowEditJobProposalForm(JobProposalModel proposal)
+    {
+        proposalToEdit = proposal;
+        editFormVisible = true;
+        showCreateForm = false;
+        showDeleteConfirmation = false;
+        showJobProposalList = false;
+    }
+
+    private async Task UpdateJobProposal()
+    {
+        var content = new StringContent(JsonSerializer.Serialize(proposalToEdit),
+            Encoding.UTF8, "application/json");
+        var response = await httpClient.PutAsync($"http://localhost:5052/api/Proposals/{proposalToEdit.JobProposalID}", content);
+
+        if (response.IsSuccessStatusCode)
+        {
+            actionMessage = "Job Proposal updated successfully";
+            proposalToEdit = new JobProposalModel();
+            showEditForm = false;
+            await ListAllProposals();
+        }
+        else
+        {
+            actionMessage = "Failed to update Job Proposal";
+        }
+    }
+
+    private void CancelEdit()
+    {
+        showEditForm = false;
+        proposalToEdit = new JobProposalModel();
+    }
+    
+    private async Task AddJobProposalSkill()
+{
+    if (proposal.JobProposalID == 0)
+    {
+        // Mostrar mensagem de erro ao usuário.
+        return;
+    }
+
+    if (allSkills == null)
+    {
+        Console.WriteLine("allSkills is null");
+        return;
+    }
+
+    if (newJobSkill == null)
+    {
+        Console.WriteLine("newJobProposalSkill is null");
+        return;
+    }
+
+        newJobSkill.JobProposalID = proposal.JobProposalID;
+
+    var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/JobProposalSkills", newJobSkill);
+
+    if (response.IsSuccessStatusCode)
+    {
+        newJobSkill = new JobProposalSkillModel();
+        await ListAllProposals();
+    }
+    else
+    {
+        // Mostrar mensagem de erro ao usuário.
+    }
+}
+
+private async Task UpdateJobProposalSkills()
+{
+    Console.WriteLine("Updating job proposal skills...");
+    var response = await httpClient.GetAsync("http://localhost:5052/api/Skills");
+
+    if (response.IsSuccessStatusCode)
+    {
+        string responseString = await response.Content.ReadAsStringAsync();
+        JsonDocument doc = JsonDocument.Parse(responseString);
+        JsonElement root = doc.RootElement;
+        JsonElement values;
+
+        if (root.TryGetProperty("$values", out values))
+        {
+            allSkills = JsonSerializer.Deserialize<List<SkillModel>>(values.GetRawText());
+            Console.WriteLine($"Skills count: {allSkills?.Count}");
+            foreach (var skill in allSkills)
+            {
+                Console.WriteLine($"Skill ID: {skill.SkillID}, Name: '{skill.Name}'");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Failed to fetch skills: $values property not found in JSON");
+        }
+    }
+    else
+    {
+        Console.WriteLine($"Failed to fetch skills. Status code: {response.StatusCode}");
+    }
+}
+
+/*private async Task SaveJobProposalSkill()
+{
+    var response = await httpClient.PostAsJsonAsync($"http://localhost:5052/api/Proposals/addskill", newJobSkill);
+
+    if (response.IsSuccessStatusCode)
+    {
+        // Reset the form
+        newJobSkill = new JobProposalSkillModel();
+        showAddSkillForm = false;
+
+        // Reload the proposals to show the newly added skill
+        await ListAllProposals();
+    }
+    else
+    {
+        // Handle error (show a message, log the error, etc.)
+    }
+}*/
+
+/*private void ShowAddJobProposalSkillForm(JobProposalModel proposalToEdit)
+{
+    newJobSkill = new JobProposalSkillModel { JobProposalID = proposalToEdit.JobProposalID };
+    showAddSkillForm = true;
+    showJobProposalList = false;
+    UpdateJobProposalSkills();
+}*/
+
+protected override async Task OnInitializedAsync()
+{
+    Console.WriteLine("JobProposals component initialized.");
+
+    var responseString = await httpClient.GetStringAsync("http://localhost:5052/api/Skills");
+    allSkills = JsonConvert.DeserializeObject<List<SkillModel>>(responseString);
+
+    Console.WriteLine("All Skills Count: " + allSkills.Count);
+    await ListAllProposals();
+    await UpdateJobProposalSkills();
+    foreach (var skill in allSkills)
+    {
+        Console.WriteLine("Skill: " + skill.Name);
+    }
+}
+    
+    
+}

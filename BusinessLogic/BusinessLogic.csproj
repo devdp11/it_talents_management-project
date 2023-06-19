@@ -33,6 +33,7 @@
 
     <ItemGroup>
       <Compile Remove="Models\TalentModel.cs" />
+      <Compile Remove="Models\CreateJobProposalModel.cs" />
     </ItemGroup>
 
 </Project>
