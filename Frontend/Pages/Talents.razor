@@ -5,8 +5,11 @@
 @using Blazored.LocalStorage
 @using System.Text
 @using System.Text.Json
+@using Newtonsoft.Json
 @inject ILocalStorageService localstorage
 @using Newtonsoft.Json.Linq;
+@using JsonException = System.Text.Json.JsonException
+@using JsonSerializer = System.Text.Json.JsonSerializer
 @page "/talents"
 
 <PageTitle>Talents</PageTitle>
@@ -249,7 +252,7 @@
     private CreateProfessionalModel createProfessionalModel = new CreateProfessionalModel();
     private UpdateProfessionalModel updateProfessionalModel = new UpdateProfessionalModel();
     private List<SkillModel> allSkills;
-    private AddProfessionalSkillModel   newSkill = new AddProfessionalSkillModel();
+    private AddProfessionalSkillModel newSkill = new AddProfessionalSkillModel();
     private AddExperienceModel newExperience = new AddExperienceModel();
     private bool showAddSkillForm = false;
     private bool showAddExperienceForm = false;
@@ -447,11 +450,23 @@
 
         if (response.IsSuccessStatusCode)
         {
-            allSkills = await response.Content.ReadFromJsonAsync<List<SkillModel>>();
-            Console.WriteLine($"Skills count: {allSkills?.Count}");
-            foreach (var skill in allSkills)
+            string responseString = await response.Content.ReadAsStringAsync();
+            JsonDocument doc = JsonDocument.Parse(responseString);
+            JsonElement root = doc.RootElement;
+            JsonElement values;
+
+            if (root.TryGetProperty("$values", out values))
             {
-                Console.WriteLine("Skill: " + skill.Name);
+                allSkills = JsonSerializer.Deserialize<List<SkillModel>>(values.GetRawText());
+                Console.WriteLine($"Skills count: {allSkills?.Count}");
+                foreach (var skill in allSkills)
+                {
+                    Console.WriteLine($"Skill ID: {skill.SkillID}, Name: '{skill.Name}'");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Failed to fetch skills: $values property not found in JSON");
             }
         }
         else
@@ -462,7 +477,7 @@
     
     private async Task SaveSkill()
     {
-        var response = await httpClient.PostAsJsonAsync($"http://localhost:5052/api/Talents/{editProfessionalId}/Skills", newSkill);
+        var response = await httpClient.PostAsJsonAsync($"http://localhost:5052/api/Talents/addskill", newSkill);
 
         if (response.IsSuccessStatusCode)
         {
@@ -472,7 +487,7 @@
 
             // Reload the profiles to show the newly added skill
             await ListProfiles();
-
+            professional.ProfessionalSkills = await httpClient.GetFromJsonAsync<List<ProfessionalSkillModel>>($"http://localhost:5052/api/Talents/{editProfessionalId}/Skills");
             // Print allSkills
             Console.WriteLine("All Skills Count: " + allSkills.Count);
             foreach (var skill in allSkills)
@@ -492,6 +507,7 @@
         newSkill = new AddProfessionalSkillModel { ProfessionalID = professionalToEdit.ProfessionalID };
         showAddSkillForm = true;
         showSkillList = false;
+        UpdateSkills();
     }
     
     private void ShowAddExperienceForm(ProfessionalModel professionalToEdit)
@@ -512,7 +528,7 @@
         }
         else
         {
-    // Handle error...
+            // Handle error...
         }
     }
 
@@ -562,13 +578,16 @@
     protected override async Task OnInitializedAsync()
     {
         Console.WriteLine("Talents component initialized.");
-        allSkills = await httpClient.GetFromJsonAsync<List<SkillModel>>("http://localhost:5052/api/Skills");
+    
+        var responseString = await httpClient.GetStringAsync("http://localhost:5052/api/Skills");
+        allSkills = JsonConvert.DeserializeObject<List<SkillModel>>(responseString);
+    
         Console.WriteLine("All Skills Count: " + allSkills.Count);
+        await ListProfiles();
+        await UpdateSkills();
         foreach (var skill in allSkills)
         {
             Console.WriteLine("Skill: " + skill.Name);
         }
-        await ListProfiles();
-        await UpdateSkills();
     }
 }
