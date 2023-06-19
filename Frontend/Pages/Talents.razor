@@ -106,6 +106,8 @@
                     <td>
                         <button class="btn btn-primary" @onclick="() => ShowEditForm(professional)">Edit</button>
                         <button class="btn btn-danger" @onclick="() => ShowDeleteConfirmation(professional.ProfessionalID)">Delete</button>
+                        <button class="btn btn-info" @onclick="() => ShowAddSkillForm(professional)">AddSkill</button>
+                        <button class="btn btn-info" @onclick="() => ShowAddExperienceForm(professional)">AddExperience</button>
                     </td>
                 </tr>
             }
@@ -119,33 +121,33 @@
 
     <EditForm Model="@updateProfessionalModel" OnValidSubmit="EditProfile">
         <div class="form-group">
-            <label for="name">Name</label>
-            <InputText class="form-control" id="name" @bind-Value="@professional.Name" />
-            <ValidationMessage For="@(() => professional.Name)" />
-        </div>
+                <label for="name">Name</label>
+                <InputText class="form-control" id="name" @bind-Value="@updateProfessionalModel.Name" />
+                <ValidationMessage For="@(() => updateProfessionalModel.Name)" />
+            </div>
         
         <div class="form-group">
             <label for="country">Country</label>
-            <InputText class="form-control" id="country" @bind-Value="@professional.Country"/>
-            <ValidationMessage For="@(() => professional.Country)"/>
+            <InputText class="form-control" id="country" @bind-Value="@updateProfessionalModel.Country"/>
+            <ValidationMessage For="@(() => updateProfessionalModel.Country)"/>
         </div>
         
         <div class="form-group">
             <label for="email">Email</label>
-            <InputText class="form-control" id="email" @bind-Value="@professional.Email"/>
-            <ValidationMessage For="@(() => professional.Email)"/>
+            <InputText class="form-control" id="email" @bind-Value="@updateProfessionalModel.Email"/>
+            <ValidationMessage For="@(() => updateProfessionalModel.Email)"/>
         </div>
         
         <div class="form-group">
             <label for="hourlyRate">Hourly Rate</label>
-            <InputNumber class="form-control" id="hourlyRate" @bind-Value="@professional.HourlyRate"/>
-            <ValidationMessage For="@(() => professional.HourlyRate)"/>
+            <InputNumber class="form-control" id="hourlyRate" @bind-Value="@updateProfessionalModel.HourlyRate"/>
+            <ValidationMessage For="@(() => updateProfessionalModel.HourlyRate)"/>
         </div>
         
         <div class="form-group">
             <label for="visibility">Visibility</label>
-            <InputCheckbox class="form-check-input" id="visibility" @bind-Value="@professional.Visibility"/>
-            <ValidationMessage For="@(() => professional.Visibility)"/>
+            <InputCheckbox class="form-check-input" id="visibility" @bind-Value="@updateProfessionalModel.Visibility"/>
+            <ValidationMessage For="@(() => updateProfessionalModel.Visibility)"/>
         </div>
 
         <div class="button">
@@ -169,12 +171,19 @@
     <EditForm Model="@newSkill" OnValidSubmit="SaveSkill">
         <div class="form-group">
             <label for="skill">Skill</label>
-            <InputSelect class="form-control" id="skill" @bind-Value="@newSkill.SkillID">
-                @foreach (var skill in allSkills)
-                {
-                    <option value="@skill.SkillID">@skill.Name</option>
-                }
-            </InputSelect>
+            @if (allSkills == null)
+            {
+                <p>Loading skills...</p>
+            }
+            else
+            {
+                <InputSelect class="form-control" id="skill" @bind-Value="@newSkill.SkillID">
+                    @foreach (var skill in allSkills)
+                    {
+                        <option value="@skill.SkillID">@skill.Name</option>
+                    }
+                </InputSelect>
+            }
         </div>
 
         <div class="form-group">
@@ -195,6 +204,36 @@
     <button class="btn btn-secondary" @onclick="ShowList">No, go back</button>
 }
 
+@if (showAddExperienceForm)
+{
+    <h4>Add Experience</h4>
+
+    <EditForm Model="@newExperience" OnValidSubmit="AddExperience">
+        <div class="form-group">
+            <label for="title">Title</label>
+            <InputText class="form-control" id="title" @bind-Value="@newExperience.Title" />
+        </div>
+
+        <div class="form-group">
+            <label for="company">Company</label>
+		<InputText class="form-control" id="company" @bind-Value="@newExperience.Company" />
+        </div>
+
+        <div class="form-group">
+            <label for="startDate">Start Date</label>
+            <InputDate class="form-control" id="startDate" @bind-Value="@newExperience.StartYear" />
+        </div>
+
+        <div class="form-group">
+            <label for="endDate">End Date</label>
+            <InputDate class="form-control" id="endDate" @bind-Value="@newExperience.EndYear" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => showAddExperienceForm = false">Cancel</button>
+    </EditForm>
+}
+
 @code {
     private string editMessage;
     private string Message = "";
@@ -210,8 +249,10 @@
     private CreateProfessionalModel createProfessionalModel = new CreateProfessionalModel();
     private UpdateProfessionalModel updateProfessionalModel = new UpdateProfessionalModel();
     private List<SkillModel> allSkills;
-    private AddProfessionalSkillModel newSkill = new AddProfessionalSkillModel();
+    private AddProfessionalSkillModel   newSkill = new AddProfessionalSkillModel();
+    private AddExperienceModel newExperience = new AddExperienceModel();
     private bool showAddSkillForm = false;
+    private bool showAddExperienceForm = false;
     private int _userID;
     
     private async Task ListProfiles()
@@ -242,7 +283,7 @@
                     Country = (string)p["country"] ?? "",
                     Email = (string)p["email"] ?? "",
                     HourlyRate = (int?)p["hourlyrate"] ?? 0,
-                    Visibility = professional.Visibility
+                    Visibility = (bool?)p["visibility"] ?? false
                 }).ToList();
 
                 showSkillList = true;
@@ -337,7 +378,6 @@
         }
     }
 
-    
     private async Task EditProfile()
     {
         var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Talents/{editProfessionalId}", updateProfessionalModel);
@@ -365,16 +405,59 @@
         showSkillList = false;
     }
     
-    protected override async Task OnInitializedAsync()
-    {
-        allSkills = await httpClient.GetFromJsonAsync<List<SkillModel>>("http://localhost:5052/api/Skills");
-        await ListProfiles();
-    }
 
-    private void AddProfessionalSkill()
+    private async Task AddSkill()
     {
-        newSkill = new AddProfessionalSkillModel();
-        showAddSkillForm = true;
+        if (editProfessionalId == 0)
+        {
+            // Mostrar mensagem de erro ao usuário.
+            return;
+        }
+        if (allSkills == null)
+        {
+            Console.WriteLine("allSkills is null");
+            return;
+        }
+        if (newSkill == null)
+        {
+            Console.WriteLine("newSkill is null");
+            return;
+        }
+        Console.WriteLine(allSkills);
+
+        newSkill.ProfessionalID = editProfessionalId;
+
+        var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/ProfessionalSkills", newSkill);
+
+        if (response.IsSuccessStatusCode)
+        {
+            newSkill = new AddProfessionalSkillModel();
+            await ListProfiles();
+        }
+        else
+        {
+            // Mostrar mensagem de erro ao usuário.
+        }
+    }
+    private async Task UpdateSkills()
+    {
+        Console.WriteLine("Updating skills...");
+        var response = await httpClient.GetAsync("http://localhost:5052/api/Skills");
+        Console.WriteLine("UpdateSkills() response status code: " + response.StatusCode);
+
+        if (response.IsSuccessStatusCode)
+        {
+            allSkills = await response.Content.ReadFromJsonAsync<List<SkillModel>>();
+            Console.WriteLine($"Skills count: {allSkills?.Count}");
+            foreach (var skill in allSkills)
+            {
+                Console.WriteLine("Skill: " + skill.Name);
+            }
+        }
+        else
+        {
+            Console.WriteLine($"Failed to fetch skills. Status code: {response.StatusCode}");
+        }
     }
     
     private async Task SaveSkill()
@@ -383,47 +466,56 @@
 
         if (response.IsSuccessStatusCode)
         {
-        // Reset the form
+            // Reset the form
             newSkill = new AddProfessionalSkillModel();
             showAddSkillForm = false;
 
-        // Reload the profiles to show the newly added skill
+            // Reload the profiles to show the newly added skill
+            await ListProfiles();
+
+            // Print allSkills
+            Console.WriteLine("All Skills Count: " + allSkills.Count);
+            foreach (var skill in allSkills)
+            {
+                Console.WriteLine("Skill: " + skill.Name);
+            }
+        }
+        else
+        {
+    // Handle error (show a message, log the error, etc.)
+        }
+    }
+    
+    private void ShowAddSkillForm(ProfessionalModel professionalToEdit)
+    {
+        editProfessionalId = professionalToEdit.ProfessionalID;
+        newSkill = new AddProfessionalSkillModel { ProfessionalID = professionalToEdit.ProfessionalID };
+        showAddSkillForm = true;
+        showSkillList = false;
+    }
+    
+    private void ShowAddExperienceForm(ProfessionalModel professionalToEdit)
+    {
+        editProfessionalId = professionalToEdit.ProfessionalID;
+        newExperience = new AddExperienceModel { ProfessionalID = professionalToEdit.ProfessionalID };
+        showAddExperienceForm = true;
+    }
+
+    private async Task AddExperience()
+    {
+        var response = await httpClient.PostAsJsonAsync($"http://localhost:5052/api/Experiences", newExperience);
+
+        if (response.IsSuccessStatusCode)
+        {
+            showAddExperienceForm = false;
             await ListProfiles();
         }
         else
         {
-        // Handle error (show a message, log the error, etc.)
+    // Handle error...
         }
     }
-    
-    private async Task AddExperience()
-    {
-        // Crie um novo objeto de experiência com valores padrão
-        var defaultExperience = new AddExperienceModel
-        {
-            ProfessionalID = editProfessionalId, // ou outro valor apropriado
-            Title = "Título Padrão",
-            Company = "Empresa Padrão",
-            StartYear = DateTime.Now.Year,
-            EndYear = DateTime.Now.Year
-        };
 
-        // Adicione a experiência padrão ao perfil do profissional
-        updateProfessionalModel.Experiences.Add(defaultExperience);
-    
-        // Envie a requisição para o servidor
-        var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Talents/{editProfessionalId}", updateProfessionalModel);
-    
-        if (response.IsSuccessStatusCode)
-        {
-            // A experiência foi adicionada com sucesso
-        }
-        else
-        {
-            // Handle error
-        }
-    }
-    
 
     private async Task DeleteSkill()
     {
@@ -466,5 +558,17 @@
     private void HandleInvalidSubmit(EditContext context)
     {
         Console.WriteLine("Failed to submit form");
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine("Talents component initialized.");
+        allSkills = await httpClient.GetFromJsonAsync<List<SkillModel>>("http://localhost:5052/api/Skills");
+        Console.WriteLine("All Skills Count: " + allSkills.Count);
+        foreach (var skill in allSkills)
+        {
+            Console.WriteLine("Skill: " + skill.Name);
+        }
+        await ListProfiles();
+        await UpdateSkills();
     }
 }
