@@ -60,17 +60,31 @@ namespace Backend.Controllers
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateClient(int id, Client updatedClient)
+        public IActionResult UpdateClient(int id, ClientModel updatedClient)
         {
             var client = _dbContext.Clients.FirstOrDefault(c => c.Clientid == id);
             if (client == null)
             {
                 return NotFound();
             }
+
+            // Armazena o valor do UserID original
+            var originalUserID = client.Userid;
+
+            // Atualize apenas as propriedades que podem ser modificadas
             client.Name = updatedClient.Name;
+            // Atualize outras propriedades, se necessário
+
+            // Restaura o valor do UserID original no cliente atualizado
+            updatedClient.UserID = originalUserID ?? default(int); // ou updatedClient.UserID = originalUserID.GetValueOrDefault();
+
             _dbContext.SaveChanges();
             return NoContent();
         }
+
+
+
+
 
         [HttpDelete("{id}")]
         public IActionResult DeleteClient(int id)
