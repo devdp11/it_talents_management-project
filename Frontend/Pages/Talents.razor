@@ -211,7 +211,7 @@
 {
     <h4>Add Experience</h4>
 
-    <EditForm Model="@newExperience" OnValidSubmit="AddExperience">
+    <EditForm Model="@newExperience" OnValidSubmit="async () => await AddExperience()">
         <div class="form-group">
             <label for="title">Title</label>
             <InputText class="form-control" id="title" @bind-Value="@newExperience.Title" />
@@ -224,12 +224,12 @@
 
         <div class="form-group">
             <label for="startDate">Start Date</label>
-            <InputDate class="form-control" id="startDate" @bind-Value="@newExperience.StartYear" />
+            <InputNumber class="form-control" id="startYear" @bind-Value="@newExperience.StartYear" />
         </div>
 
         <div class="form-group">
             <label for="endDate">End Date</label>
-            <InputDate class="form-control" id="endDate" @bind-Value="@newExperience.EndYear" />
+            <InputNumber class="form-control" id="endYear" @bind-Value="@newExperience.EndYear" />
         </div>
 
         <button type="submit" class="btn btn-primary">Add</button>
@@ -515,11 +515,12 @@
         editProfessionalId = professionalToEdit.ProfessionalID;
         newExperience = new AddExperienceModel { ProfessionalID = professionalToEdit.ProfessionalID };
         showAddExperienceForm = true;
+        showSkillList = false;
     }
 
     private async Task AddExperience()
     {
-        var response = await httpClient.PostAsJsonAsync($"http://localhost:5052/api/Experiences", newExperience);
+        var response = await httpClient.PostAsJsonAsync($"http://localhost:5052/api/Talents/addexperience", newExperience);
 
         if (response.IsSuccessStatusCode)
         {
@@ -528,7 +529,7 @@
         }
         else
         {
-            // Handle error...
+    // Handle error...
         }
     }
 
