@@ -2,6 +2,12 @@
 @inject HttpClient httpClient
 @using Microsoft.AspNetCore.Components
 @using BusinessLogic.Models
+@using Blazored.LocalStorage
+@using System.Text
+@using System.Text.Json
+@inject ILocalStorageService localstorage
+@using Newtonsoft.Json;
+@using Newtonsoft.Json.Linq;
 @page "/clients"
 
 <PageTitle>Clients</PageTitle>
@@ -28,7 +34,15 @@
 {
     <h4>Add Clients</h4>
 
-    
+    <form @onsubmit="createClient">
+        <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" class="form-control" id="name" @bind="@client.Name" required>
+        </div>
+        <div class ="button">
+        <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+    </form>
 }
 
 @if (showClientList)
@@ -49,7 +63,6 @@
             <tr>
                 <td>@client.ClientID</td>
                 <td>@client.Name</td>
-                <td>@client.User.Username</td>
 
                 <td>
                     <button class="btn btn-primary" @onclick="() => ShowEditForm(client)">Edit</button>
@@ -70,12 +83,6 @@
             <label for="name">Name</label>
             <InputText type="name" class="form-control" id="name" @bind-Value="@client.Name" />
             <ValidationMessage For="@(() => client.Name)" />
-        </div>
-
-        <div class="form-group">
-            <label for="username">Username</label>
-            <InputText type="username" class="form-control" id="username" @bind-Value="@client.User.Username"/>
-            <ValidationMessage For="@(() => client.User.Username)"/>
         </div>
 
         <div class="button">
@@ -112,19 +119,27 @@
     bool showEditForm = false;
     bool showDeleteConfirmation = false;
     private bool showClientList = false;
+    private int _userID;
     
     private async Task ListClients()
     {
-        clients = await httpClient.GetFromJsonAsync<List<ClientModel>>("http://localhost:5052/api/Clients");
+        clients = await httpClient.GetFromJsonAsync<List<ClientModel>>("http://localhost:5052/api/Client");
     }
     
     private async Task ListAllClients()
     {
-        var response = await httpClient.GetAsync("http://localhost:5052/api/Clients");
+        var response = await httpClient.GetAsync("http://localhost:5052/api/Client");
 
         if (response.IsSuccessStatusCode)
         {
-            clients = await response.Content.ReadFromJsonAsync<List<ClientModel>>();
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            Console.WriteLine(jsonResponse); // Imprime a resposta no console
+
+            var jsonObject = JObject.Parse(jsonResponse);
+            var values = jsonObject.GetValue("$values").ToString();
+
+            clients = JsonConvert.DeserializeObject<List<ClientModel>>(values);
+
             showClientList = true;
             showCreateForm = false;
             showEditForm = false;
@@ -142,8 +157,13 @@
     
     private async Task createClient()
     {
+        // Pega o userID do LocalStorage
+        _userID = await localstorage.GetItemAsync<int>("userID");
 
-        var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/Clients", client);
+        // Adiciona o userID ao modelo  
+        client.UserID = _userID;
+
+        var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/Client", client);
 
         if (response.IsSuccessStatusCode)
         {
@@ -196,7 +216,7 @@
 
     private async Task DeleteSkill()
     {
-        var response = await httpClient.DeleteAsync($"http://localhost:5052/api/Clients/{deleteClientId}");
+        var response = await httpClient.DeleteAsync($"http://localhost:5052/api/Client/{deleteClientId}");
 
         if (response.IsSuccessStatusCode)
         {

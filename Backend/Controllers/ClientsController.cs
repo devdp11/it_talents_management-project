@@ -19,9 +19,17 @@ namespace Backend.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Client>> GetClients()
+        public ActionResult<IEnumerable<ClientModel>> GetClients()
         {
-            var clients = _dbContext.Clients.ToList();
+            var clients = _dbContext.Clients
+                .Select(c => new ClientModel 
+                { 
+                    ClientID = c.Clientid,
+                    UserID = c.Userid ?? default, // Se Userid for null, então use o valor padrão para int.
+                    Name = c.Name
+                })
+                .ToList();
+
             return Ok(clients);
         }
 
