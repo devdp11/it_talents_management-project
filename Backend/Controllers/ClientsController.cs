@@ -25,7 +25,7 @@ namespace Backend.Controllers
                 .Select(c => new ClientModel 
                 { 
                     ClientID = c.Clientid,
-                    UserID = c.Userid ?? default, // Se Userid for null, então use o valor padrão para int.
+                    UserID = c.Userid ?? default,
                     Name = c.Name
                 })
                 .ToList();
@@ -71,12 +71,12 @@ namespace Backend.Controllers
             // Armazena o valor do UserID original
             var originalUserID = client.Userid;
 
-            // Atualize apenas as propriedades que podem ser modificadas
+            // Atualiza apenas as propriedades que podem ser modificadas
             client.Name = updatedClient.Name;
             // Atualize outras propriedades, se necessário
 
             // Restaura o valor do UserID original no cliente atualizado
-            updatedClient.UserID = originalUserID ?? default(int); // ou updatedClient.UserID = originalUserID.GetValueOrDefault();
+            updatedClient.UserID = originalUserID ?? default(int);
 
             _dbContext.SaveChanges();
             return NoContent();

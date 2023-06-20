@@ -51,7 +51,7 @@ namespace Backend.Controllers
         [HttpPost]
         public IActionResult AddProposal(JobProposalModel proposal)
         {
-            // Transformar o modelo de entrada em uma entidade que pode ser salva no banco de dados
+            // Transformar o modelo de entrada em uma entidade que pode ser guardada na base de dados
             Jobproposal entity = new Jobproposal
             {
                 Userid = proposal.UserID,
@@ -69,7 +69,7 @@ namespace Backend.Controllers
                 Minyearsexperience = p.MinYearsExperience
             }).ToList();
 
-            // Adicionar a entidade ao banco de dados
+            // Adicionar a entidade a base de dados
             _dbContext.Jobproposals.Add(entity);
             _dbContext.SaveChanges();
 
@@ -124,10 +124,8 @@ namespace Backend.Controllers
                 return NotFound();
             }
 
-            // Remove all associated JobProposalSkills first
             _dbContext.JobproposalSkills.RemoveRange(proposal.JobproposalSkills);
 
-            // Now remove the JobProposal
             _dbContext.Jobproposals.Remove(proposal);
             _dbContext.SaveChanges();
 

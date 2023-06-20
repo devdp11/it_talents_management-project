@@ -34,7 +34,7 @@ namespace Backend.Controllers
         [HttpPost]
         public ActionResult<SkillModel> CreateSkill(SkillModel skillModel)
         {
-            // Verifique se a skill já existe
+            // Verifica se a skill já existe
             var existingSkill = _dbContext.Skills.FirstOrDefault(s => s.Name == skillModel.Name && s.Professionalarea == skillModel.ProfessionalArea);
 
             if (existingSkill != null)
@@ -127,7 +127,7 @@ namespace Backend.Controllers
                 return NotFound();
             }
     
-            // Verifica se a nova combinação de nome e área profissional já existe em outra skill
+            // Verifica se a nova combinação de nome e área profissional já existe noutra skill
             var existingSkill = _dbContext.Skills.FirstOrDefault(s => s.Name == updatedSkill.Name && s.Professionalarea == updatedSkill.ProfessionalArea && s.Skillid != id);
             if (existingSkill != null)
             {

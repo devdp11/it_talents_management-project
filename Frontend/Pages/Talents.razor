@@ -413,7 +413,6 @@
     {
         if (editProfessionalId == 0)
         {
-            // Mostrar mensagem de erro ao usuário.
             return;
         }
         if (allSkills == null)
@@ -439,7 +438,6 @@
         }
         else
         {
-            // Mostrar mensagem de erro ao usuário.
         }
     }
     private async Task UpdateSkills()
@@ -481,14 +479,12 @@
 
         if (response.IsSuccessStatusCode)
         {
-            // Reset the form
             newSkill = new AddProfessionalSkillModel();
             showAddSkillForm = false;
 
-            // Reload the profiles to show the newly added skill
             await ListProfiles();
             professional.ProfessionalSkills = await httpClient.GetFromJsonAsync<List<ProfessionalSkillModel>>($"http://localhost:5052/api/Talents/{editProfessionalId}/Skills");
-            // Print allSkills
+            // mostra as skills que existem
             Console.WriteLine("All Skills Count: " + allSkills.Count);
             foreach (var skill in allSkills)
             {
@@ -497,7 +493,6 @@
         }
         else
         {
-    // Handle error (show a message, log the error, etc.)
         }
     }
     
@@ -529,7 +524,6 @@
         }
         else
         {
-    // Handle error...
         }
     }
 

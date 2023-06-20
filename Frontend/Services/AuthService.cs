@@ -11,7 +11,6 @@ namespace Frontend.Services
         public bool IsAuthenticated => _isAuthenticated;
         public string Role => _role;
 
-        // Adicionar esta linha
         public event Action OnChange;
 
         public void Login(string role)

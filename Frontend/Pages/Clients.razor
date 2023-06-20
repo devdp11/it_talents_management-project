@@ -134,7 +134,7 @@
         if (response.IsSuccessStatusCode)
         {
             var jsonResponse = await response.Content.ReadAsStringAsync();
-            Console.WriteLine(jsonResponse); // Imprime a resposta no console
+            Console.WriteLine(jsonResponse);
 
             var jsonObject = JObject.Parse(jsonResponse);
             var values = jsonObject.GetValue("$values").ToString();

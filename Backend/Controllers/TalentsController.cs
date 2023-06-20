@@ -34,7 +34,7 @@ namespace Backend.Controllers
         [HttpPost]
         public ActionResult<CreateProfessionalModel> CreateProfessional(CreateProfessionalModel professionalModel)
         {
-            // Verifica se o usuário existe
+            // Verifica se o user existe
             var user = _dbContext.Users.FirstOrDefault(u => u.Userid == professionalModel.UserID);
             if (user == null)
             {
@@ -139,7 +139,7 @@ namespace Backend.Controllers
             // Remove as experiências
             _dbContext.Experiences.RemoveRange(professional.Experiences);
 
-            // Remove o profissional
+            // Remove o talento
             _dbContext.Professionals.Remove(professional);
 
             _dbContext.SaveChanges();

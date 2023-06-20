@@ -244,7 +244,7 @@
     {
         var userToDelete = users.FirstOrDefault(u => u.UserID == userId);
 
-        // Verifique se o usuário é um administrador
+        // Verifique se o user é administrador
         if (userToDelete != null && userToDelete.RoleName.ToLower() == "admin")
         {
             actionMessage = "Cannot delete admin users";

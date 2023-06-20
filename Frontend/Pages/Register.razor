@@ -113,7 +113,7 @@
 
         if (response.IsSuccessStatusCode)
         {
-            // Registro bem-sucedido
+            // register bem-sucedido
             await localstorage.SetItemAsync("isAuthenticated", false);
             //await localstorage.SetItemAsync("role", "user");
             Console.WriteLine("Success");
@@ -121,11 +121,9 @@
         }
         else
         {
-            // Falha no registro
+            // Falha no register
             var error = await response.Content.ReadAsStringAsync();
             Console.WriteLine("Error");
-            // Lide com a resposta de registro falhado
-            // Exiba uma mensagem de erro ou execute outras ações
         }
     }
 }

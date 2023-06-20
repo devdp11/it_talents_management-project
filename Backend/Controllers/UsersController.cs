@@ -58,7 +58,7 @@ namespace Backend.Controllers
                 return BadRequest("Role does not exist");
             }
 
-            // Crie o novo usuário e defina seu RoleID como o RoleID da função encontrada
+            // Crie o novo user e define o RoleID como o RoleID da função encontrada
             var user = new User 
             { 
                 Username = userModel.Username, 
@@ -147,7 +147,7 @@ namespace Backend.Controllers
                 return NotFound();
             }
 
-            // Verifique se o usuário é um administrador
+            // Verifique se o user é administrador
             if (user.Role.Name.ToLower() == "admin")
             {
                 return BadRequest("Admin users cannot be updated");
