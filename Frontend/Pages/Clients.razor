@@ -190,7 +190,7 @@
     
     private async Task EditClient()
     {
-        var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Clients/{client.ClientID}", client);
+        var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Client/{client.ClientID}", client);
 
         if (response.IsSuccessStatusCode)
         {

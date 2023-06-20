@@ -1,441 +1,588 @@
+@using Frontend.Models
+@inject HttpClient httpClient
 @using Microsoft.AspNetCore.Components
 @using BusinessLogic.Models
-@inject HttpClient httpClient
-@using Frontend.Models
-@using System.Text.Json
+@using Blazored.LocalStorage
 @using System.Text
+@using System.Text.Json
 @using Newtonsoft.Json
+@inject ILocalStorageService localstorage
+@using Newtonsoft.Json.Linq;
+@using JsonException = System.Text.Json.JsonException
 @using JsonSerializer = System.Text.Json.JsonSerializer
-@page "/Proposals"
+@page "/proposals"
 
-<PageTitle>Job Proposals</PageTitle>
-<h1>Job Proposal Page</h1>
-
+<PageTitle>Talents</PageTitle>
+<h1>Talents Page</h1>
 <style>
-        .button {
-            margin-top: 20px;
-        }
-        label {
-            margin-top: 10px;
-            color: royalblue;
-        }
-        InputText{
-            border-color: royalblue;
-        }
+    .button {
+        margin-top: 20px;
+    }
+    label {
+        margin-top: 10px;
+        color: royalblue;
+    }
+    InputText{
+        border-color: royalblue;    
+    }
 </style>
 
-
 <div class="text-center">
-    <button class="btn btn-primary" @onclick="ShowCreateForm">Add Job Proposal</button>
-    <button class="btn btn-primary" @onclick="ListAllProposals">List Job Proposals</button>
+    <button class="btn btn-primary custom-btn" @onclick="ShowCreateForm">Add Talent Profile</button>
+    <button class="btn btn-primary custom-btn" @onclick="ListAllProfiles">List Talent Profiles</button>
 </div>
 
 @if (showCreateForm)
 {
-    <h4>Add Job Proposal</h4>
-
-    <EditForm Model="@proposal" OnValidSubmit="createJobProposal">
-        <div class="form-group">
-            <label for="clientId">Client ID</label>
-            <InputNumber class="form-control" id="clientId" @bind-Value="@proposal.ClientID" />
-            <ValidationMessage For="@(() => proposal.ClientID)" />
-        </div>
+    <h4>Add Professionals</h4>
+    <EditForm Model="@createProfessionalModel" OnValidSubmit="createProfessional" OnInvalidSubmit="HandleInvalidSubmit">
         <div class="form-group">
             <label for="name">Name</label>
-            <InputText class="form-control" id="name" @bind-Value="@proposal.Name" />
-            <ValidationMessage For="@(() => proposal.Name)" />
+            <InputText class="form-control" id="name" @bind-Value="@createProfessionalModel.Name" />
+            <ValidationMessage For="@(() => createProfessionalModel.Name)" />
         </div>
+
         <div class="form-group">
-            <label for="talentCategory">Talent Category</label>
-            <InputText class="form-control" id="talentCategory" @bind-Value="@proposal.TalentCategory" />
-            <ValidationMessage For="@(() => proposal.TalentCategory)" />
+            <label for="country">Country</label>
+            <InputText class="form-control" id="country" @bind-Value="@createProfessionalModel.Country"/>
+            <ValidationMessage For="@(() => createProfessionalModel.Country)"/>
         </div>
+
         <div class="form-group">
-            <label for="totalHours">Total Hours</label>
-            <InputNumber class="form-control" id="totalHours" @bind-Value="@proposal.TotalHours" />
-            <ValidationMessage For="@(() => proposal.TotalHours)" />
+            <label for="email">Email</label>
+            <InputText class="form-control" id="email" @bind-Value="@createProfessionalModel.Email"/>
+            <ValidationMessage For="@(() => createProfessionalModel.Email)"/>
         </div>
+
         <div class="form-group">
-            <label for="jobDescription">Job Description</label>
-            <InputTextArea class="form-control" id="jobDescription" @bind-Value="@proposal.JobDescription" />
-            <ValidationMessage For="@(() => proposal.JobDescription)" />
+            <label for="hourlyRate">Hourly Rate</label>
+            <InputNumber class="form-control" id="hourlyRate" @bind-Value="@createProfessionalModel.HourlyRate"/>
+            <ValidationMessage For="@(() => createProfessionalModel.HourlyRate)"/>
         </div>
-            @foreach (var jobProposalSkill in proposalToEdit.JobproposalSkill)
-                {
-                    int currentIndex = proposalToEdit.JobproposalSkill.IndexOf(jobProposalSkill);
-                    <div class="form-group">
-                        <label for="skill@currentIndex">Skill @currentIndex</label>
-                        <select class="form-control" id="skill@currentIndex" @bind="jobProposalSkill.SkillID">
-                            @foreach (var skill in allSkills)
-                            {
-                                <option value="@skill.SkillID">@skill.Name</option>
-                            }
-                        </select>
-                    </div>
-                }
-        <button type="submit" class="btn btn-primary mt-3">Create</button>
+
+        <div class="form-group">
+            <label for="visibility">Visibility</label>
+            <InputCheckbox class="form-check-input" id="visibility" @bind-Value="@createProfessionalModel.Visibility"/>
+            <ValidationMessage For="@(() => createProfessionalModel.Visibility)"/>
+        </div>
+
+        <div class="button">
+            <button class="btn btn-primary" type="submit">Create</button>
+            <button class="btn btn-danger" @onclick="CancelCreate">Cancel</button>
+        </div>
+        <div>
+            @if (!string.IsNullOrEmpty(createMessage))
+            {
+                <div class="alert alert-info">@createMessage</div>
+            }
+        </div>
     </EditForm>
+
+    
 }
 
-@if (showJobProposalList)
+@if (showSkillList)
 {
-    <h4>Job Proposal List</h4>
+    <h4>List Profiles</h4>
 
     <table class="table">
         <thead>
-        <tr>
-            <th>ID</th>
-            <th>Title</th>
-            <th>Description</th>
-            <th></th>
-        </tr>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Country</th>
+                <th>Email</th>
+                <th>Hourly Rate</th>
+                <th>Visibility</th>
+            </tr>
         </thead>
         <tbody>
-        @foreach (var proposal in jobProposals)
-        {
-            <tr>
-                <td>@proposal.JobProposalID</td>
-                <td>@proposal.Name</td>
-                <td>@proposal.JobDescription</td>
-                <td>
-                    <button class="btn btn-primary" @onclick="() => ShowEditJobProposalForm(proposal)">Edit</button>
-                    <button class="btn btn-danger" @onclick="() => ShowDeleteConfirmation(proposal.JobProposalID)">Delete</button>
-                </td>
-            </tr>
-        }
+            @foreach (var professional in professionals)
+            {
+                <tr>
+                    <td>@professional.ProfessionalID</td>
+                    <td>@professional.Name</td>
+                    <td>@professional.Country</td>
+                    <td>@professional.Email</td>
+                    <td>@professional.HourlyRate</td>
+                    <td>@(professional.Visibility ? "Publico" : "Privado")</td> 
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => ShowEditForm(professional)">Edit</button>
+                        <button class="btn btn-danger" @onclick="() => ShowDeleteConfirmation(professional.ProfessionalID)">Delete</button>
+                        <button class="btn btn-info" @onclick="() => ShowAddSkillForm(professional)">AddSkill</button>
+                        <button class="btn btn-info" @onclick="() => ShowAddExperienceForm(professional)">AddExperience</button>
+                    </td>
+                </tr>
+            }
         </tbody>
     </table>
 }
 
-@if (showDeleteConfirmation)
+@if (showEditForm)
 {
-    <div class="modal show d-block" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirm Delete</h5>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete this proposal?</p>
-                    @if (!string.IsNullOrEmpty(actionMessage))
-                    {
-                        <div class="alert alert-info">@actionMessage</div>
-                    }
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" @onclick="ConfirmDelete">Confirm</button>
-                    <button type="button" class="btn btn-danger" @onclick="CancelDelete">Cancel</button>
-                </div>
+    <h4>Edit Profile</h4>
+
+    <EditForm Model="@updateProfessionalModel" OnValidSubmit="EditProfile">
+        <div class="form-group">
+                <label for="name">Name</label>
+                <InputText class="form-control" id="name" @bind-Value="@updateProfessionalModel.Name" />
+                <ValidationMessage For="@(() => updateProfessionalModel.Name)" />
             </div>
+        
+        <div class="form-group">
+            <label for="country">Country</label>
+            <InputText class="form-control" id="country" @bind-Value="@updateProfessionalModel.Country"/>
+            <ValidationMessage For="@(() => updateProfessionalModel.Country)"/>
         </div>
-    </div>
+        
+        <div class="form-group">
+            <label for="email">Email</label>
+            <InputText class="form-control" id="email" @bind-Value="@updateProfessionalModel.Email"/>
+            <ValidationMessage For="@(() => updateProfessionalModel.Email)"/>
+        </div>
+        
+        <div class="form-group">
+            <label for="hourlyRate">Hourly Rate</label>
+            <InputNumber class="form-control" id="hourlyRate" @bind-Value="@updateProfessionalModel.HourlyRate"/>
+            <ValidationMessage For="@(() => updateProfessionalModel.HourlyRate)"/>
+        </div>
+        
+        <div class="form-group">
+            <label for="visibility">Visibility</label>
+            <InputCheckbox class="form-check-input" id="visibility" @bind-Value="@updateProfessionalModel.Visibility"/>
+            <ValidationMessage For="@(() => updateProfessionalModel.Visibility)"/>
+        </div>
+
+        <div class="button">
+            <button class="btn btn-primary" type="submit">Update</button>
+            <button class="btn btn-danger" @onclick="CancelEdit">Cancel</button>
+        </div>
+
+        <div>
+            @if (!string.IsNullOrEmpty(editMessage))
+            {
+                <div class="alert alert-info">@editMessage</div>
+            }
+        </div>
+    </EditForm>
 }
 
-@if (editFormVisible)
+@if (showAddSkillForm)
 {
-    <h4>Edit Job Proposal</h4>
+    <h4>Add Professional Skill</h4>
 
-    <EditForm Model="@proposalToEdit" OnValidSubmit="UpdateJobProposal">
+    <EditForm Model="@newSkill" OnValidSubmit="SaveSkill">
         <div class="form-group">
-            <label for="clientId">Client ID</label>
-            <InputNumber class="form-control" id="clientId" @bind-Value="@proposalToEdit.ClientID" />
-            <ValidationMessage For="@(() => proposalToEdit.ClientID)" />
+            <label for="skill">Skill</label>
+            @if (allSkills == null)
+            {
+                <p>Loading skills...</p>
+            }
+            else
+            {
+                <InputSelect class="form-control" id="skill" @bind-Value="@newSkill.SkillID">
+                    @foreach (var skill in allSkills)
+                    {
+                        <option value="@skill.SkillID">@skill.Name</option>
+                    }
+                </InputSelect>
+            }
         </div>
+
         <div class="form-group">
-            <label for="name">Name</label>
-            <InputText class="form-control" id="name" @bind-Value="@proposalToEdit.Name" />
-            <ValidationMessage For="@(() => proposalToEdit.Name)" />
+            <label for="yearsExperience">Years of Experience</label>
+            <InputNumber class="form-control" id="yearsExperience" @bind-Value="@newSkill.YearsExperience" />
         </div>
+
+        <button class="btn btn-primary" type="submit">Add Skill</button>
+        <button class="btn btn-secondary" @onclick="() => showAddSkillForm = false">Cancel</button>
+    </EditForm>
+}
+
+@if (showDeleteConfirmation)
+{
+    <h4>Delete Skill</h4>
+    <p>Are you sure you want to delete this skill?</p>
+    <button class="btn btn-danger" @onclick="DeleteSkill">Yes, delete it</button>
+    <button class="btn btn-secondary" @onclick="ShowList">No, go back</button>
+}
+
+@if (showAddExperienceForm)
+{
+    <h4>Add Experience</h4>
+
+    <EditForm Model="@newExperience" OnValidSubmit="async () => await AddExperience()">
         <div class="form-group">
-            <label for="talentCategory">Talent Category</label>
-            <InputText class="form-control" id="talentCategory" @bind-Value="@proposalToEdit.TalentCategory" />
-            <ValidationMessage For="@(() => proposalToEdit.TalentCategory)" />
+            <label for="title">Title</label>
+            <InputText class="form-control" id="title" @bind-Value="@newExperience.Title" />
         </div>
+
         <div class="form-group">
-            <label for="totalHours">Total Hours</label>
-            <InputNumber class="form-control" id="totalHours" @bind-Value="@proposalToEdit.TotalHours" />
-            <ValidationMessage For="@(() => proposalToEdit.TotalHours)" />
+            <label for="company">Company</label>
+		<InputText class="form-control" id="company" @bind-Value="@newExperience.Company" />
         </div>
+
         <div class="form-group">
-            <label for="jobDescription">Job Description</label>
-            <InputTextArea class="form-control" id="jobDescription" @bind-Value="@proposalToEdit.JobDescription" />
-            <ValidationMessage For="@(() => proposalToEdit.JobDescription)" />
+            <label for="startDate">Start Date</label>
+            <InputNumber class="form-control" id="startYear" @bind-Value="@newExperience.StartYear" />
         </div>
-        @foreach (var jobProposalSkill in proposalToEdit.JobproposalSkill)
-                {
-                    int currentIndex = proposalToEdit.JobproposalSkill.IndexOf(jobProposalSkill);
-                    <div class="form-group">
-                        <label for="skill@currentIndex">Skill @currentIndex</label>
-                        <select class="form-control" id="skill@currentIndex" @bind="jobProposalSkill.SkillID">
-                            @foreach (var skill in allSkills)
-                            {
-                                <option value="@skill.SkillID">@skill.Name</option>
-                            }
-                        </select>
-                    </div>
-                }
-        <button type="submit" class="btn btn-primary mt-3">Update</button>
+
+        <div class="form-group">
+            <label for="endDate">End Date</label>
+            <InputNumber class="form-control" id="endYear" @bind-Value="@newExperience.EndYear" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add</button>
+        <button type="button" class="btn btn-secondary" @onclick="() => showAddExperienceForm = false">Cancel</button>
     </EditForm>
 }
 
 @code {
-    private string actionMessage = "";
-    private List<JobProposalModel> jobProposals;
-    private JobProposalModel proposal = new JobProposalModel();
-    private int editProposalId;
-    private int deleteProposalId;
+    private string editMessage;
+    private string Message = "";
+    private List<ProfessionalModel> professionals;
+    private ProfessionalModel professional = new ProfessionalModel();
+    private int editProfessionalId;
+    private int deleteProfessionalId;
     private string createMessage;
     bool showCreateForm = false;
     bool showEditForm = false;
     bool showDeleteConfirmation = false;
-    private bool showJobProposalList = false;
+    private bool showSkillList = false;
+    private CreateProfessionalModel createProfessionalModel = new CreateProfessionalModel();
+    private UpdateProfessionalModel updateProfessionalModel = new UpdateProfessionalModel();
     private List<SkillModel> allSkills;
-    private JobProposalSkillModel newJobSkill = new JobProposalSkillModel();
+    private AddProfessionalSkillModel newSkill = new AddProfessionalSkillModel();
+    private AddExperienceModel newExperience = new AddExperienceModel();
+    private bool showAddSkillForm = false;
+    private bool showAddExperienceForm = false;
+    private int _userID;
     
-    private async Task ListProposals()
+    private async Task ListProfiles()
     {
-        jobProposals = await httpClient.GetFromJsonAsync<List<JobProposalModel>>("http://localhost:5052/api/Proposals");
+        professionals = await httpClient.GetFromJsonAsync<List<ProfessionalModel>>("http://localhost:5052/api/Talents");
     }
     
-    private async Task ListAllProposals()
+    private async Task ListAllProfiles()
     {
-        var response = await httpClient.GetAsync("http://localhost:5052/api/Proposals");
+        var response = await httpClient.GetAsync("http://localhost:5052/api/Talents");
 
         if (response.IsSuccessStatusCode)
         {
-            var jsonResponse = await response.Content.ReadAsStringAsync();
-            var document = JsonDocument.Parse(jsonResponse);
+            var responseString = await response.Content.ReadAsStringAsync();
+            try
+            {
+                JObject jsonResponse = JObject.Parse(responseString);
 
-            jobProposals = document.RootElement.GetProperty("$values").EnumerateArray()
-                .Select(element => new JobProposalModel
-                { 
-                    JobProposalID = element.GetProperty("proposalID").GetInt32(), 
-                    Name = element.GetProperty("Name").GetString(), 
-                    JobDescription = element.GetProperty("JobDescription").GetString(), 
-                    UserID = element.GetProperty("userID").GetInt32(),
-                })
-                .ToList();
+                // Obtém a lista de profissionais
+                JArray professionalsArray = (JArray)jsonResponse["$values"];
 
-            showJobProposalList = true;
-            showCreateForm = false;
-            showEditForm = false;
-            showDeleteConfirmation = false;
+                // Limpa os dados
+                professionals = professionalsArray.Select(p => new ProfessionalModel
+                {
+                    ProfessionalID = (int?)p["professionalid"] ?? 0,
+                    UserID = (int?)p["userid"] ?? 0,
+                    Name = (string)p["name"] ?? "",
+                    Country = (string)p["country"] ?? "",
+                    Email = (string)p["email"] ?? "",
+                    HourlyRate = (int?)p["hourlyrate"] ?? 0,
+                    Visibility = (bool?)p["visibility"] ?? false
+                }).ToList();
+
+                showSkillList = true;
+                showCreateForm = false;
+                showEditForm = false;
+                showDeleteConfirmation = false;
+            }
+            catch (JsonException e)
+            {
+                Console.WriteLine("Failed to deserialize response: " + e.Message);
+                Console.WriteLine("Response was: " + responseString);
+            }
         }
         else
         {
-            jobProposals = new List<JobProposalModel>();
-            showJobProposalList = false;
+            professionals = new List<ProfessionalModel>();
+            showSkillList = false;
             showCreateForm = false; 
             showEditForm = false;
             showDeleteConfirmation = false;
         }
     }
     
-    private async Task createJobProposal()
+    private async Task createProfessional()
     {
-        var content = new StringContent(JsonSerializer.Serialize(proposal), Encoding.UTF8, "application/json");
-        var response = await httpClient.PostAsync("http://localhost:5052/api/Proposals", content);
+        // Pega o userID do LocalStorage
+        _userID = await localstorage.GetItemAsync<int>("userID");
 
+        // Adiciona o userID ao modelo  
+        createProfessionalModel.UserID = _userID;
+
+        var json = JsonSerializer.Serialize(createProfessionalModel);
+        var response = await httpClient.PostAsync("http://localhost:5052/api/Talents", new StringContent(json, Encoding.UTF8, "application/json"));
         if (response.IsSuccessStatusCode)
         {
-            createMessage = "Job Proposal created with success";
-            proposal = new JobProposalModel();
+            createMessage = "Talent Profile created with success";
+            createProfessionalModel = new CreateProfessionalModel();
             showCreateForm = false;
-            await ListAllProposals();
+            await ListProfiles();
         }
         else
         {
-            createMessage = "Error creating Job Proposal";
+            createMessage = "Error creating talent profile";
         }
     }
 
     private void ShowCreateForm()
     {
-        proposal = new JobProposalModel();
+        createProfessionalModel = new CreateProfessionalModel();
         showCreateForm = true;
         showEditForm = false;
         showDeleteConfirmation = false;
-        showJobProposalList = false;
+        showSkillList = false;
     }
     
-    private async Task deleteJobProposal(int proposalId)
+    private void CancelCreate()
     {
-        var response = await httpClient.DeleteAsync($"http://localhost:5052/api/Proposals/{proposalId}");
-
-        if (response.IsSuccessStatusCode)
-        {
-            actionMessage = "Job Proposal deleted successfully";
-            await ListAllProposals();
-        }
-        else
-        {
-            actionMessage = "Failed to delete Job Proposal";
-        }
-    }
-    
-    private int proposalIdToDelete;
-    
-    private void ShowDeleteConfirmation(int proposalId)
-    {
-        actionMessage = "";
-        proposalIdToDelete = proposalId;
-        showDeleteConfirmation = true;
-    }
-
-    private async Task ConfirmDelete()
-    {
-        showDeleteConfirmation = false;
-        await deleteJobProposal(proposalIdToDelete);
-    }
-
-    private void CancelDelete()
-    {
-        showDeleteConfirmation = false;
-    }
-    
-    private JobProposalModel proposalToEdit;
-    bool editFormVisible = false;
-
-    private void ShowEditJobProposalForm(JobProposalModel proposal)
-    {
-        proposalToEdit = proposal;
-        editFormVisible = true;
         showCreateForm = false;
-        showDeleteConfirmation = false;
-        showJobProposalList = false;
+        createProfessionalModel = new CreateProfessionalModel();
+    }
+    
+    private void FillModel(ProfessionalModel professional)
+    {
+        editProfessionalId = professional.ProfessionalID; // Guarda o ID do profissional a ser editado
+    
+        updateProfessionalModel.Name = professional.Name;
+        updateProfessionalModel.Country = professional.Country;
+        updateProfessionalModel.Email = professional.Email;
+        updateProfessionalModel.HourlyRate = professional.HourlyRate;
+        updateProfessionalModel.Visibility = professional.Visibility;
+
+        if (professional.ProfessionalSkills != null)
+        {
+            updateProfessionalModel.ProfessionalSkills = professional.ProfessionalSkills.Select(ps => new AddProfessionalSkillModel
+            {
+                ProfessionalID = ps.ProfessionalID,
+                SkillID = ps.SkillID,
+                YearsExperience = ps.YearsExperience
+            }).ToList();
+        }
+
+        if (professional.Experiences != null)
+        {
+            updateProfessionalModel.Experiences = professional.Experiences.Select(e => new AddExperienceModel
+            {
+                ProfessionalID = e.ProfessionalID,
+                Title = e.Title,
+                Company = e.Company,
+                StartYear = e.StartYear,
+                EndYear = e.EndYear
+            }).ToList();
+        }
     }
 
-    private async Task UpdateJobProposal()
+    private async Task EditProfile()
     {
-        var content = new StringContent(JsonSerializer.Serialize(proposalToEdit),
-            Encoding.UTF8, "application/json");
-        var response = await httpClient.PutAsync($"http://localhost:5052/api/Proposals/{proposalToEdit.JobProposalID}", content);
-
+        var response = await httpClient.PutAsJsonAsync($"http://localhost:5052/api/Talents/{editProfessionalId}", updateProfessionalModel);
+    
         if (response.IsSuccessStatusCode)
         {
-            actionMessage = "Job Proposal updated successfully";
-            proposalToEdit = new JobProposalModel();
+            editMessage = "Talent Profile updated successfully";
+            professional = new ProfessionalModel();
             showEditForm = false;
-            await ListAllProposals();
+            await ListProfiles();
         }
         else
         {
-            actionMessage = "Failed to update Job Proposal";
+            editMessage = "Error updating profile";
         }
     }
 
-    private void CancelEdit()
+    private void ShowEditForm(ProfessionalModel talentToEdit)
     {
-        showEditForm = false;
-        proposalToEdit = new JobProposalModel();
+        FillModel(talentToEdit);
+        editProfessionalId = talentToEdit.ProfessionalID;
+        showCreateForm = false;
+        showEditForm = true;
+        showDeleteConfirmation = false;
+        showSkillList = false;
     }
     
-    private async Task AddJobProposalSkill()
-{
-    if (proposal.JobProposalID == 0)
+
+    private async Task AddSkill()
     {
-        return;
-    }
-
-    if (allSkills == null)
-    {
-        Console.WriteLine("allSkills is null");
-        return;
-    }
-
-    if (newJobSkill == null)
-    {
-        Console.WriteLine("newJobProposalSkill is null");
-        return;
-    }
-
-        newJobSkill.JobProposalID = proposal.JobProposalID;
-
-    var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/JobProposalSkills", newJobSkill);
-
-    if (response.IsSuccessStatusCode)
-    {
-        newJobSkill = new JobProposalSkillModel();
-        await ListAllProposals();
-    }
-    else
-    {
-    }
-}
-
-private async Task UpdateJobProposalSkills()
-{
-    Console.WriteLine("Updating job proposal skills...");
-    var response = await httpClient.GetAsync("http://localhost:5052/api/Skills");
-
-    if (response.IsSuccessStatusCode)
-    {
-        string responseString = await response.Content.ReadAsStringAsync();
-        JsonDocument doc = JsonDocument.Parse(responseString);
-        JsonElement root = doc.RootElement;
-        JsonElement values;
-
-        if (root.TryGetProperty("$values", out values))
+        if (editProfessionalId == 0)
         {
-            allSkills = JsonSerializer.Deserialize<List<SkillModel>>(values.GetRawText());
-            Console.WriteLine($"Skills count: {allSkills?.Count}");
-            foreach (var skill in allSkills)
+            return;
+        }
+        if (allSkills == null)
+        {
+            Console.WriteLine("allSkills is null");
+            return;
+        }
+        if (newSkill == null)
+        {
+            Console.WriteLine("newSkill is null");
+            return;
+        }
+        Console.WriteLine(allSkills);
+
+        newSkill.ProfessionalID = editProfessionalId;
+
+        var response = await httpClient.PostAsJsonAsync("http://localhost:5052/api/ProfessionalSkills", newSkill);
+
+        if (response.IsSuccessStatusCode)
+        {
+            newSkill = new AddProfessionalSkillModel();
+            await ListProfiles();
+        }
+        else
+        {
+        }
+    }
+    private async Task UpdateSkills()
+    {
+        Console.WriteLine("Updating skills...");
+        var response = await httpClient.GetAsync("http://localhost:5052/api/Skills");
+        Console.WriteLine("UpdateSkills() response status code: " + response.StatusCode);
+
+        if (response.IsSuccessStatusCode)
+        {
+            string responseString = await response.Content.ReadAsStringAsync();
+            JsonDocument doc = JsonDocument.Parse(responseString);
+            JsonElement root = doc.RootElement;
+            JsonElement values;
+
+            if (root.TryGetProperty("$values", out values))
             {
-                Console.WriteLine($"Skill ID: {skill.SkillID}, Name: '{skill.Name}'");
+                allSkills = JsonSerializer.Deserialize<List<SkillModel>>(values.GetRawText());
+                Console.WriteLine($"Skills count: {allSkills?.Count}");
+                foreach (var skill in allSkills)
+                {
+                    Console.WriteLine($"Skill ID: {skill.SkillID}, Name: '{skill.Name}'");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Failed to fetch skills: $values property not found in JSON");
             }
         }
         else
         {
-            Console.WriteLine("Failed to fetch skills: $values property not found in JSON");
+            Console.WriteLine($"Failed to fetch skills. Status code: {response.StatusCode}");
         }
     }
-    else
-    {
-        Console.WriteLine($"Failed to fetch skills. Status code: {response.StatusCode}");
-    }
-}
-
-/*private async Task SaveJobProposalSkill()
-{
-    var response = await httpClient.PostAsJsonAsync($"http://localhost:5052/api/Proposals/addskill", newJobSkill);
-
-    if (response.IsSuccessStatusCode)
-    {
-        newJobSkill = new JobProposalSkillModel();
-        showAddSkillForm = false;
-
-        // Reload the proposals to show the newly added skill
-        await ListAllProposals();
-    }
-    else
-    {
-        //error message
-    }
-}*/
-
-/*private void ShowAddJobProposalSkillForm(JobProposalModel proposalToEdit)
-{
-    newJobSkill = new JobProposalSkillModel { JobProposalID = proposalToEdit.JobProposalID };
-    showAddSkillForm = true;
-    showJobProposalList = false;
-    UpdateJobProposalSkills();
-}*/
-
-protected override async Task OnInitializedAsync()
-{
-    Console.WriteLine("JobProposals component initialized.");
-
-    var responseString = await httpClient.GetStringAsync("http://localhost:5052/api/Skills");
-    allSkills = JsonConvert.DeserializeObject<List<SkillModel>>(responseString);
-
-    Console.WriteLine("All Skills Count: " + allSkills.Count);
-    await ListAllProposals();
-    await UpdateJobProposalSkills();
-    foreach (var skill in allSkills)
-    {
-        Console.WriteLine("Skill: " + skill.Name);
-    }
-}
     
+    private async Task SaveSkill()
+    {
+        var response = await httpClient.PostAsJsonAsync($"http://localhost:5052/api/Talents/addskill", newSkill);
+
+        if (response.IsSuccessStatusCode)
+        {
+            newSkill = new AddProfessionalSkillModel();
+            showAddSkillForm = false;
+
+            await ListProfiles();
+            professional.ProfessionalSkills = await httpClient.GetFromJsonAsync<List<ProfessionalSkillModel>>($"http://localhost:5052/api/Talents/{editProfessionalId}/Skills");
+            // mostra as skills que existem
+            Console.WriteLine("All Skills Count: " + allSkills.Count);
+            foreach (var skill in allSkills)
+            {
+                Console.WriteLine("Skill: " + skill.Name);
+            }
+        }
+        else
+        {
+        }
+    }
     
+    private void ShowAddSkillForm(ProfessionalModel professionalToEdit)
+    {
+        editProfessionalId = professionalToEdit.ProfessionalID;
+        newSkill = new AddProfessionalSkillModel { ProfessionalID = professionalToEdit.ProfessionalID };
+        showAddSkillForm = true;
+        showSkillList = false;
+        UpdateSkills();
+    }
+    
+    private void ShowAddExperienceForm(ProfessionalModel professionalToEdit)
+    {
+        editProfessionalId = professionalToEdit.ProfessionalID;
+        newExperience = new AddExperienceModel { ProfessionalID = professionalToEdit.ProfessionalID };
+        showAddExperienceForm = true;
+        showSkillList = false;
+    }
+
+    private async Task AddExperience()
+    {
+        var response = await httpClient.PostAsJsonAsync($"http://localhost:5052/api/Talents/addexperience", newExperience);
+
+        if (response.IsSuccessStatusCode)
+        {
+            showAddExperienceForm = false;
+            await ListProfiles();
+        }
+        else
+        {
+        }
+    }
+
+
+    private async Task DeleteSkill()
+    {
+        var response = await httpClient.DeleteAsync($"http://localhost:5052/api/Talents/{deleteProfessionalId}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            Message = "Talent profile deleted successfully";
+            await ListAllProfiles();
+            ShowList();
+        }
+        else
+        {
+            Message = "Error deleting profile";
+        }
+    }
+
+    private void ShowDeleteConfirmation(int idToDelete)
+    {
+        deleteProfessionalId = idToDelete;
+        showDeleteConfirmation = true;
+        showCreateForm = false;
+        showEditForm = false;
+        showSkillList = false;
+    }
+
+    private void ShowList()
+    {
+        showDeleteConfirmation = false;
+        showCreateForm = false;
+        showEditForm = false;
+        showSkillList = true;
+    }
+    
+    private void CancelEdit()
+    {
+        showEditForm = false;
+        professional = new ProfessionalModel();
+    }
+    private void HandleInvalidSubmit(EditContext context)
+    {
+        Console.WriteLine("Failed to submit form");
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine("Talents component initialized.");
+    
+        var responseString = await httpClient.GetStringAsync("http://localhost:5052/api/Skills");
+        allSkills = JsonConvert.DeserializeObject<List<SkillModel>>(responseString);
+    
+        Console.WriteLine("All Skills Count: " + allSkills.Count);
+        await ListProfiles();
+        await UpdateSkills();
+        foreach (var skill in allSkills)
+        {
+            Console.WriteLine("Skill: " + skill.Name);
+        }
+    }
 }

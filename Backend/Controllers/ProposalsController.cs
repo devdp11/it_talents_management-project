@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using BusinessLogic.Models;
 using BusinessLogic.databaseContext;
 using BusinessLogic.Entities;
+using Frontend.Models;
 
 namespace Backend.Controllers
 {
@@ -25,6 +26,7 @@ namespace Backend.Controllers
             var proposals = _dbContext.Jobproposals
                 .Include(p => p.Client)
                 .Include(p => p.JobproposalSkills)
+                .ThenInclude(jp => jp.Skill)
                 .ToList();
 
             return Ok(proposals);
@@ -49,27 +51,20 @@ namespace Backend.Controllers
 
         // POST: api/proposals
         [HttpPost]
-        public IActionResult AddProposal(JobProposalModel proposal)
+        public IActionResult AddProposal(CreateWorkProposal createProposal)
         {
-            // Transformar o modelo de entrada em uma entidade que pode ser guardada na base de dados
+            // Transformar o modelo de entrada em uma entidade que pode ser guardada no banco de dados
             Jobproposal entity = new Jobproposal
             {
-                Userid = proposal.UserID,
-                Clientid = proposal.ClientID,
-                Name = proposal.Name,
-                Talentcategory = proposal.TalentCategory,
-                Totalhours = proposal.TotalHours,
-                Jobdescription = proposal.JobDescription
+                Userid = createProposal.UserID,
+                Clientid = createProposal.ClientID,
+                Name = createProposal.Name,
+                Talentcategory = createProposal.TalentCategory,
+                Totalhours = createProposal.TotalHours,
+                Jobdescription = createProposal.JobDescription
             };
-    
-            // Mapear cada JobProposalSkillModel para uma entidade JobProposalSkill e adicionar à lista de JobProposalSkills da entidade JobProposal
-            entity.JobproposalSkills = proposal.JobproposalSkill.Select(p => new JobproposalSkill 
-            { 
-                Skillid = p.SkillID, 
-                Minyearsexperience = p.MinYearsExperience
-            }).ToList();
 
-            // Adicionar a entidade a base de dados
+            // Adicionar a entidade ao banco de dados
             _dbContext.Jobproposals.Add(entity);
             _dbContext.SaveChanges();
 
@@ -79,35 +74,22 @@ namespace Backend.Controllers
 
         // PUT: api/proposals/{id}
         [HttpPut("{id}")]
-        public IActionResult UpdateProposal(int id, JobProposalUpdateModel updatedProposal)
+        public IActionResult UpdateProposal(int id, UpdateProposalModel updatedProposal)
         {
             var proposal = _dbContext.Jobproposals
                 .Include(p => p.JobproposalSkills)
                 .FirstOrDefault(p => p.Jobproposalid == id);
-    
+
             if (proposal == null)
             {
                 return NotFound();
             }
 
-            // Atualizar campos simples
-            proposal.Clientid = updatedProposal.ClientID;
+            // Não permitir a atualização do Clientid, Userid e das habilidades (ProposalSkills)
             proposal.Name = updatedProposal.Name;
             proposal.Talentcategory = updatedProposal.TalentCategory;
             proposal.Totalhours = updatedProposal.TotalHours;
             proposal.Jobdescription = updatedProposal.JobDescription;
-
-            // Remover todas as habilidades antigas
-            _dbContext.JobproposalSkills.RemoveRange(proposal.JobproposalSkills);
-
-            // Adicionar habilidades atualizadas
-            proposal.JobproposalSkills = updatedProposal.JobproposalSkill
-                .Select(skill => new JobproposalSkill
-                {
-                    Skillid = skill.SkillID,
-                    Minyearsexperience = skill.MinYearsExperience
-                })
-                .ToList();
 
             _dbContext.SaveChanges();
 
@@ -118,15 +100,48 @@ namespace Backend.Controllers
         [HttpDelete("{id}")]
         public IActionResult DeleteProposal(int id)
         {
-            var proposal = _dbContext.Jobproposals.Include(p => p.JobproposalSkills).FirstOrDefault(p => p.Jobproposalid == id);
+            var proposal = _dbContext.Jobproposals
+                .Include(p => p.JobproposalSkills)
+                .FirstOrDefault(p => p.Jobproposalid == id);
+
             if (proposal == null)
             {
                 return NotFound();
             }
 
+            // Remove as associações de habilidades
             _dbContext.JobproposalSkills.RemoveRange(proposal.JobproposalSkills);
 
+            // Remove a proposta
             _dbContext.Jobproposals.Remove(proposal);
+
+            _dbContext.SaveChanges();
+
+            return NoContent();
+        }
+
+
+        // POST: api/proposals/{id}/skills
+        [HttpPost("{id}/skills")]
+        public IActionResult AddProposalSkills(int id, List<AddProposalSkillModel> skills)
+        {
+            var proposal = _dbContext.Jobproposals.FirstOrDefault(p => p.Jobproposalid == id);
+
+            if (proposal == null)
+            {
+                return NotFound();
+            }
+
+            // Adicionar as habilidades ao proposal
+            foreach (var skill in skills)
+            {
+                proposal.JobproposalSkills.Add(new JobproposalSkill
+                {
+                    Skillid = skill.SkillID,
+                    Minyearsexperience = skill.YearsExperience
+                });
+            }
+
             _dbContext.SaveChanges();
 
             return NoContent();
