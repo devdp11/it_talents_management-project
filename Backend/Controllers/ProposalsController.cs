@@ -21,15 +21,28 @@ namespace Backend.Controllers
 
         // GET: api/proposals
         [HttpGet]
-        public IActionResult GetProposals()
+        public async Task<ActionResult<IEnumerable<JobProposalModel>>> GetJobProposals()
         {
-            var proposals = _dbContext.Jobproposals
-                .Include(p => p.Client)
-                .Include(p => p.JobproposalSkills)
-                .ThenInclude(jp => jp.Skill)
-                .ToList();
-
-            return Ok(proposals);
+            return await _dbContext.Jobproposals
+                .Include(jp => jp.JobproposalSkills)
+                .Select(jp => new JobProposalModel
+                {
+                    JobProposalID = jp.Jobproposalid,
+                    UserID = jp.Userid ?? 0,
+                    ClientID = jp.Clientid ?? 0,
+                    Name = jp.Name,
+                    TalentCategory = jp.Talentcategory,
+                    TotalHours = jp.Totalhours,
+                    JobDescription = jp.Jobdescription,
+                    JobproposalSkill = jp.JobproposalSkills.Select(s => new JobProposalSkillModel
+                    {
+                    // Aqui você mapeia a entidade Skill para o DTO SkillDto.
+                    // Modifique o código abaixo para corresponder à sua classe SkillDto.
+                    SkillID = s.Skillid,
+                    MinYearsExperience = s.Minyearsexperience,
+                    }).ToList()
+                })
+                .ToListAsync();
         }
 
         // GET: api/proposals/{id}
@@ -51,24 +64,24 @@ namespace Backend.Controllers
 
         // POST: api/proposals
         [HttpPost]
-        public IActionResult AddProposal(CreateWorkProposal createProposal)
+        public IActionResult AddProposal(CreateWorkProposalModel createProposalModel)
         {
-            // Transformar o modelo de entrada em uma entidade que pode ser guardada no banco de dados
+            // Transformar o modelo de entrada numa entidade
             Jobproposal entity = new Jobproposal
             {
-                Userid = createProposal.UserID,
-                Clientid = createProposal.ClientID,
-                Name = createProposal.Name,
-                Talentcategory = createProposal.TalentCategory,
-                Totalhours = createProposal.TotalHours,
-                Jobdescription = createProposal.JobDescription
+                Userid = createProposalModel.UserID,
+                Clientid = createProposalModel.ClientID,
+                Name = createProposalModel.Name,
+                Talentcategory = createProposalModel.TalentCategory,
+                Totalhours = createProposalModel.TotalHours,
+                Jobdescription = createProposalModel.JobDescription
             };
 
-            // Adicionar a entidade ao banco de dados
+            // Adicionar a entidade
             _dbContext.Jobproposals.Add(entity);
             _dbContext.SaveChanges();
 
-            // Retornar a entidade salva (se necessário, pode converter de volta para um modelo)
+            // Retornar a entidade (se necessário, pode converter de volta para um modelo)
             return CreatedAtAction(nameof(GetProposal), new { id = entity.Jobproposalid }, entity);
         }
 
@@ -85,7 +98,7 @@ namespace Backend.Controllers
                 return NotFound();
             }
 
-            // Não permitir a atualização do Clientid, Userid e das habilidades (ProposalSkills)
+            // Não permitir a atualização do Clientid, Userid e das skills (ProposalSkills)
             proposal.Name = updatedProposal.Name;
             proposal.Talentcategory = updatedProposal.TalentCategory;
             proposal.Totalhours = updatedProposal.TotalHours;
@@ -109,10 +122,10 @@ namespace Backend.Controllers
                 return NotFound();
             }
 
-            // Remove as associações de habilidades
+            // Remove as associações de skills
             _dbContext.JobproposalSkills.RemoveRange(proposal.JobproposalSkills);
 
-            // Remove a proposta
+            // Remove a proposal
             _dbContext.Jobproposals.Remove(proposal);
 
             _dbContext.SaveChanges();
@@ -122,29 +135,34 @@ namespace Backend.Controllers
 
 
         // POST: api/proposals/{id}/skills
-        [HttpPost("{id}/skills")]
-        public IActionResult AddProposalSkills(int id, List<AddProposalSkillModel> skills)
+        [HttpPost("addskill")]
+        public IActionResult AddSkillToProposal(AddProposalSkillModel model)
         {
-            var proposal = _dbContext.Jobproposals.FirstOrDefault(p => p.Jobproposalid == id);
-
+            var proposal = _dbContext.Jobproposals.FirstOrDefault(p => p.Jobproposalid == model.JobProposalID);
             if (proposal == null)
             {
                 return NotFound();
             }
 
-            // Adicionar as habilidades ao proposal
-            foreach (var skill in skills)
+            var skill = _dbContext.Skills.FirstOrDefault(s => s.Skillid == model.SkillID);
+            if (skill == null)
             {
-                proposal.JobproposalSkills.Add(new JobproposalSkill
-                {
-                    Skillid = skill.SkillID,
-                    Minyearsexperience = skill.YearsExperience
-                });
+                return BadRequest($"Skill with id {model.SkillID} does not exist");
             }
 
-            _dbContext.SaveChanges();
+            var proposalSkill = new JobproposalSkill 
+            {
+                Jobproposalid = proposal.Jobproposalid,
+                Skillid = model.SkillID,
+                Minyearsexperience = model.YearsExperience,
+                Jobproposal = proposal,
+                Skill = skill
+            };
 
-            return NoContent();
+            _dbContext.JobproposalSkills.Add(proposalSkill);
+            _dbContext.SaveChanges();
+    
+            return Ok();
         }
     }
 }

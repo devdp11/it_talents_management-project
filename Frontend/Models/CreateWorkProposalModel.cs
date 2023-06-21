@@ -1,6 +1,6 @@
 ﻿namespace Frontend.Models;
 
-public class CreateWorkProposal
+public class CreateWorkProposalModel
 {
     public int UserID { get; set; }
     public string Name { get; set; }

@@ -276,7 +276,7 @@
 
                 // Obtém a lista de profissionais
                 JArray professionalsArray = (JArray)jsonResponse["$values"];
-
+                
                 // Limpa os dados
                 professionals = professionalsArray.Select(p => new ProfessionalModel
                 {
